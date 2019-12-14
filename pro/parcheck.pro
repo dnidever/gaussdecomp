@@ -57,7 +57,7 @@ for i=0,ngauss-1 do begin
   ;if par(3*i+2) le 1. then flag=1
   if par(3*i+2) le 0.5*dx then flag=1
   if par(3*i+2) gt (max(x)-min(x))*0.5 then flag=1
-end
+endfor
 
 ; Checking for Infinite or NAN
 dum = where(finite(par) eq 0,nfinite)

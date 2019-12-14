@@ -36,19 +36,22 @@ for i=0,ngauss-1 do begin
   ; getting the area
   area = garea(ipar)
 
-  ; checking the height
-  if ipar(0) le 0.01 then flag=1
-  if ipar(0) gt max(y)*1.1 then flag=1
-  ; should allow wider and small gaussians
-  ; but remove narrow and small gaussians.
-  ; what's the cutoff.  the area?
+  ; Using PARCHECK.PRO
+  parcheck,x,y,ipar,flag
 
-  ; checking the center
-  if ipar(1) lt min(x) or par(3*i+1) gt max(x) then flag=1
-
-  ; checking the widths
-  if ipar(2) le 1. then flag=1
-  if ipar(2) gt (max(x)-min(x))*0.5 then flag=1
+  ;; checking the height
+  ;if ipar(0) le 0.01 then flag=1
+  ;if ipar(0) gt max(y)*1.1 then flag=1
+  ;; should allow wider and small gaussians
+  ;; but remove narrow and small gaussians.
+  ;; what's the cutoff.  the area?
+  ;
+  ;; checking the center
+  ;if ipar(1) lt min(x) or par(3*i+1) gt max(x) then flag=1
+  ;
+  ;; checking the widths
+  ;if ipar(2) le 1. then flag=1
+  ;if ipar(2) gt (max(x)-min(x))*0.5 then flag=1
 
   ;if everything's fine add them to the final parameters
   if flag eq 0 and keyword_set(fpar) then fpar = [fpar,ipar]
@@ -59,7 +62,7 @@ for i=0,ngauss-1 do begin
 
   ;stop
 
-end
+endfor
 
 if keyword_set(fpar) then par = fpar else par=-1
 
