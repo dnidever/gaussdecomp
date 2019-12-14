@@ -11,17 +11,19 @@ The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey a
 - setlimits.pro: Set limits on all of the Gaussian parameters (height, velocity, width). 
 - hinoise.pro: The program that calculates the noise in each spectrum.  You should set which velocity range to use.
 
-The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided:
 
 ## Example
 
-https://www.astro.uni-bonn.de/hisurvey/gass/
+The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small GASS cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters.
+
+```
 l = 295.0 deg
 b = -41.0 deg
 width in l = 1 deg
 width in b = 1 deg
+```
 
-gass.in
+`gass.in`
 
 spawn,'echo $HOST',host
 print,'RUNNING THIS PROGRAM ON ',host
