@@ -187,6 +187,7 @@ GLAT            FLOAT          -41.4000
 ```
 
 The columns are:
+
 Column  |  Description
 ------------ | -------------
 LON |  X position in the grid starting with 0.
