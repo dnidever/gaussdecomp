@@ -1,6 +1,6 @@
 .r gdriver.pro
 .r gloadspec.pro
-.r gaussfit4.pro
+.r gaussfit.pro
 .r gincrement.pro
 .r hinoise.pro
 .r gplot.pro

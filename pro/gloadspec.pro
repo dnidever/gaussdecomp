@@ -14,24 +14,62 @@ endif
 ; The first time
 DEFSYSV,'!gauss',exists=gauss_exists
 if not gauss_exists then begin
-  print,'LOADING DATACUBE'
+  print,'LOADING DATACUBE from ',cubefile
   FITS_READ,cubefile,cube,head
-  FITS_ARRAYS,head,v0,glon0,glat0
+  FITS_ARRAYS,head,xarr,yarr,zarr
   szcube = size(cube)
-  ; flip velocity
-  ;cube = reverse(cube,3)
-  ;v0 = reverse(v0)
-  ; Flip longitude
-  ;cube = reverse(cube,2)
-  ;glon0 = reverse(glon0)
-  glon2d = glon0#(fltarr(szcube[3])+1.0)
-  glat2d = (fltarr(szcube[2])+1.0)#glat0
+
+  ;; Check which dimension is velocity
+  veldim = -1
+  if stregex(strtrim(sxpar(head,'ctype1'),2),'vel',/boolean,/fold_case) eq 1 then veldim=0
+  if stregex(strtrim(sxpar(head,'ctype2'),2),'vel',/boolean,/fold_case) eq 1 then veldim=1
+  if stregex(strtrim(sxpar(head,'ctype3'),2),'vel',/boolean,/fold_case) eq 1 then veldim=2  
+  if velim lt 0 then begin
+    print,'Cannot determine velocity dimension from the header.  Assuming it is the last dimension'
+    veldim = 2
+  endif
+
+  ;; Assign arrays
+  case veldim of
+    0: begin
+      v0 = xarr
+      glon0 = yarr
+      glat0 = zarr
+    end
+    1: begin
+      glon0 = xarr
+      v0 = yarr
+      glat0 = zarr
+    end
+    2: begin
+      glon0 = xarr
+      glat0 = yarr
+      v0 = zarr
+    end
+    else:
+  endcase
+  
+  ;; Convert from m/s to km/s
+  if stregex(strtrim(sxpar(head,'cunit3'),2),'m/s',/boolean,/fold_case) eq 1 or max(v0) gt 5000 then begin
+    print,'Converting m/s to km/s'
+    v0 /= 1e3 
+  endif
+
+  ;; flip velocity
+  ;;cube = reverse(cube,3)
+  ;;v0 = reverse(v0)
+  ;; Flip longitude
+  ;;cube = reverse(cube,2)
+  ;;glon0 = reverse(glon0)
+
+  glon2d = glon0#(fltarr(n_elements(glat0))+1.0)
+  glat2d = (fltarr(n_elements(glon0))+1.0)#glat0
 
   ; missing data are set to roughly -1.52
   ;bd = where(cube lt -1,nbd)
   ;cube[bd] = !values.f_nan
 
-  DEFSYSV,'!gauss',{cube:cube,head:head,v:v0,glon2d:glon2d,glat2d:glat2d}
+  DEFSYSV,'!gauss',{cube:cube,head:head,v:v0,glon2d:glon2d,glat2d:glat2d,veldim:veldim}
 
   undefine,cube,glon2d,glat2d
 
@@ -41,7 +79,12 @@ Endif
 glon = !gauss.glon2d[lon,lat]
 glat = !gauss.glat2d[lon,lat]
 v = !gauss.v
-spec = reform(!gauss.cube[*,lon,lat])  ; v,lon,lat
+case !gauss.veldim of
+0: spec = reform(!gauss.cube[*,lon,lat]) ; vel,lon,lat
+1: spec = reform(!gauss.cube[lon,*,lat]) ; lon,vel,lat
+2: spec = reform(!gauss.cube[lon,lat,*]) ; lon,lat,vel
+else:
+endcase
 
 ; Only want good points
 gd = where(finite(spec) eq 1,ngd)
