@@ -170,3 +170,20 @@ IDL>ghess,str,'lon','lat',dx=1,dy=1,/total,/log
 
 ![Coldens map](coldens_map.png)
 
+
+Now let's plot the velocity of the Gaussian versus one of the coordinates and color-coded by the total area.
+
+```
+IDL>ghess,str,'lon','cen',dx=1,dy=1,/total,/log
+```
+
+![Velocity versus longitude](loncen.png)
+
+And, finally, we can also plot the distribution of the other Gaussian parameters.  Height versus sigma width.
+
+```
+IDL>ghess,str,'sig','ht',dx=0.2,dy=0.2
+```
+
+![Height versus sigma](htsig.png)
+
