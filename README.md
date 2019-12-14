@@ -41,6 +41,172 @@ Run it like this:
 IDL>@gass.in
 ```
 
+The output should look something like this:
+
+```
+IDL>@gass.in
+RUNNING THIS PROGRAM ON  NideverMacBookPro-2.local
+% Compiled module: GDRIVER.
+% Compiled module: GLOADSPEC.
+% Compiled module: GAUSSFIT.
+% Compiled module: GINCREMENT.
+% Compiled module: HINOISE.
+% Compiled module: GPLOT.
+% Compiled module: GFIND.
+% Compiled module: SETLIMITS.
+% Compiled module: PARCHECK.
+% Compiled module: GREMOVE.
+% Compiled module: GBETTER.
+% Compiled module: GBTRACK.
+% Compiled module: GCLEAN.
+% Compiled module: GDEV1.
+% Compiled module: GDEV.
+% Compiled module: GEST.
+% Compiled module: GFIT.
+% Compiled module: GFUNC1.
+% Compiled module: GFUNC.
+% Compiled module: GGUESS.
+% Compiled module: GHESS.
+% Compiled module: GIMAGE.
+% Compiled module: GPEAK.
+% Compiled module: GPEAK1.
+% Compiled module: GRECONPLOT.
+% Compiled module: GRECON.
+% Compiled module: GREDO.
+% Compiled module: GREMDUP.
+% Compiled module: GSORT.
+% Compiled module: GTRACKPLOT.
+% Compiled module: PRINTGPAR.
+ RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS
+-----------------------------------------------------------
+% Compiled module: STRINGIZE.
+% Compiled module: STRMULT.
+ STARTING POSITION = (0.0,0.0)
+ LONGITUDE RANGE = [0.0,12.0]
+ LATITUDE RANGE = [0.0,12.0]
+ LON DIRECTION = 1
+ LAT DIRECTION = 1
+ FILE = gass.fits
+-----------------------------------------------------------
+ USING (BACKRET) MODE
+-----------------------------------------------------------
+
+Fitting Gaussians to the HI spectrum at (0.0,0.0)
+FORWARD
+% Compiled module: UNDEFINE.
+LOADING DATACUBE from ../data/gass_295_-41.fits.gz
+% Compiled module: FITS_READ.
+% Compiled module: FITS_OPEN.
+% Compiled module: SXPAR.
+% Compiled module: GETTOK.
+% Compiled module: VALID_NUM.
+% Compiled module: SXDELPAR.
+% Compiled module: TAG_EXIST.
+% Compiled module: SXADDPAR.
+% Compiled module: FITS_CLOSE.
+% Compiled module: FITS_ARRAYS.
+X = GLON-CAR  [X] = 13
+Y = GLAT-CAR  [Y] = 13
+Z = VELO-LSRK  [Z] = 1201
+Converting m/s to km/s
+% Compiled module: SAVGOLSM.
+% Compiled module: SAVGOL.
+% Compiled module: STDEV.
+% Compiled module: CLOSEST.
+% Compiled module: MINLOC.
+% Compiled module: FIRST_EL.
+% Compiled module: MAXMIN.
+% Compiled module: SLOPE.
+% Compiled module: SPLINE.
+% Compiled module: MPFIT.
+% Compiled module: GAREA.
+% Compiled module: REMOVE.
+----------------------------------------------------------
+ #       Height         Center         Width       Area
+----------------------------------------------------------
+ 1     2.60 ( 4.5)   -2.48 ( 4.4)   11.52 ( 5.5)   75.04
+ 2     5.12 (  18)   -1.84 (  26)    5.47 (  11)   70.11
+ 3     2.84 (  51)    9.51 (  63)    3.09 (  19)   21.96
+ 4     4.98 ( 8.8)   -2.82 (0.91)    1.52 (1.00)   18.98
+ 5     2.92 (  73)    7.42 ( 6.1)    1.96 (  11)   14.35
+ 6     2.08 (  25)    1.56 ( 5.8)    1.75 ( 7.6)    9.15
+ 7     5.98 (0.68)  172.13 ( 2.6)   22.14 ( 2.2)  332.19
+ 8     6.64 ( 4.6)  151.59 ( 3.1)    5.44 ( 2.8)   90.57
+ 9     5.05 ( 1.7)  181.76 (0.88)    5.04 ( 1.2)   63.82
+ 10     4.77 ( 4.6)  151.87 (0.66)    2.49 ( 1.2)   29.80
+ 11     3.26 ( 1.8)  180.39 (0.59)    1.98 (0.87)   16.17
+ 12     0.98 (0.39)  217.66 ( 2.5)    5.70 ( 2.8)   13.94
+ 13     1.93 ( 2.1)  139.48 (  10)    5.55 ( 5.5)   26.84
+----------------------------------------------------------
+RMS = 0.0523
+Noise = 0.0490
+
+Count = 1
+Last/Current Position = (0.0,0.0)
+Neighbors (position)  visited  better  redo
+P1  (  1.0,  0.0)        -1      -1       0
+P2  (  0.0,  1.0)        -1      -1       0
+P3  (-----,-----)        -1      -1       0
+P4  (-----,-----)        -1      -1       0
+
+Fitting Gaussians to the HI spectrum at (1.0,0.0)
+FORWARD
+----------------------------------------------------------
+ #       Height         Center         Width       Area
+----------------------------------------------------------
+ 1     2.86 ( 6.5)   -2.02 ( 4.0)   11.26 ( 6.3)   80.62
+ 2     4.85 (  22)   -2.07 (  32)    5.50 (  15)   66.80
+ 3     5.18 (  10)   -2.97 (0.67)    1.51 (0.92)   19.58
+ 4     2.55 (  37)    9.70 (  54)    2.96 (  18)   18.98
+ 5     2.85 (  66)    7.33 ( 5.7)    1.93 (  10)   13.79
+ 6     2.21 (  33)    1.63 ( 4.6)    1.83 ( 8.8)   10.13
+ 7     6.81 ( 2.7)  174.45 (  18)   16.71 (  19)  285.34
+ 8    13.49 (  14)  151.51 ( 3.2)    3.12 ( 1.6)  105.34
+ 9     4.08 (  14)  144.58 (  34)    8.42 (  17)   86.08
+ 10     5.31 ( 3.6)  181.15 ( 1.3)    4.50 ( 2.3)   59.94
+ 11     3.28 (  17)  157.44 (  15)    3.42 ( 8.4)   28.16
+ 12     1.22 ( 1.4)  216.15 (  13)    9.12 (  10)   27.79
+ 13     3.51 ( 2.8)  179.84 (0.71)    1.98 (1.00)   17.41
+ 14     0.28 (0.36)  116.95 (  51)   13.09 (  36)    9.31
+ 15     0.96 ( 6.2)  144.33 ( 5.5)    2.17 ( 6.4)    5.25
+ 16     0.49 ( 1.2)  217.88 ( 4.1)    2.93 ( 6.6)    3.62
+----------------------------------------------------------
+RMS = 0.0514
+Noise = 0.0484
+
+Count = 2
+Last/Current Position = (1.0,0.0)
+Neighbors (position)  visited  better  redo
+P1  (  2.0,  0.0)        -1      -1       0
+P2  (  1.0,  1.0)        -1      -1       0
+P3  (  0.0,  0.0)        -1      -1       0
+P4  (-----,-----)        -1      -1       0
+
+Fitting Gaussians to the HI spectrum at (2.0,0.0)
+FORWARD
+----------------------------------------------------------
+ #       Height         Center         Width       Area
+----------------------------------------------------------
+ 1     6.01 ( 6.9)   -0.69 ( 3.4)    9.19 ( 4.3)  138.55
+ 2     3.73 ( 6.8)   -1.50 ( 2.0)    3.80 ( 3.0)   35.56
+ 3     3.13 ( 2.9)    8.28 (0.90)    2.49 ( 1.3)   19.54
+ 4     3.54 ( 1.7)   -3.24 (0.39)    1.21 (0.56)   10.76
+ 5     0.19 (0.56)  -26.02 (  37)    6.72 (  26)    3.20
+ 6     7.28 (  12)  151.24 ( 5.8)   10.06 ( 6.5)  183.58
+ 7     7.18 ( 8.1)  178.36 ( 3.5)    7.51 ( 5.3)  135.15
+ 8     2.79 ( 8.1)  182.65 ( 100)   22.82 (  32)  159.41
+ 9     9.79 (  12)  152.97 ( 2.7)    3.89 ( 1.4)   95.51
+ 10     6.20 ( 4.1)  179.46 (0.47)    2.73 ( 1.0)   42.40
+ 11     5.85 (  13)  151.20 ( 1.3)    2.54 ( 1.7)   37.23
+ 12     0.34 (0.77)  112.58 (  50)   13.71 (  28)   11.60
+ 13     1.08 (0.70)  218.13 ( 2.4)    4.74 ( 3.4)   12.84
+ 14     1.15 ( 1.5)  185.70 ( 2.0)    1.74 ( 2.1)    5.03
+----------------------------------------------------------
+RMS = 0.0572
+Noise = 0.0489
+
+```
+
 ## Plotting the Results
 
 The repository includes a plotting routine called `ghess.pro`.

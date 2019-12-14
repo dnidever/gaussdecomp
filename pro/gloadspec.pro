@@ -19,16 +19,18 @@ if not gauss_exists then begin
   FITS_ARRAYS,head,xarr,yarr,zarr
   szcube = size(cube)
 
-  ;; Check which dimension is velocity
+  ;; Which dimension is velocity
   veldim = -1
   if stregex(strtrim(sxpar(head,'ctype1'),2),'vel',/boolean,/fold_case) eq 1 then veldim=0
   if stregex(strtrim(sxpar(head,'ctype2'),2),'vel',/boolean,/fold_case) eq 1 then veldim=1
   if stregex(strtrim(sxpar(head,'ctype3'),2),'vel',/boolean,/fold_case) eq 1 then veldim=2  
-  if velim lt 0 then begin
+  if veldim ge 0 then begin
+    print,'Detected the velocity dimension is ',strtrim(veldim+1,2)
+  endif else begin
     print,'Cannot determine velocity dimension from the header.  Assuming it is the last dimension'
     veldim = 2
   endif
-
+  
   ;; Assign arrays
   case veldim of
     0: begin
@@ -50,7 +52,7 @@ if not gauss_exists then begin
   endcase
   
   ;; Convert from m/s to km/s
-  if stregex(strtrim(sxpar(head,'cunit3'),2),'m/s',/boolean,/fold_case) eq 1 or max(v0) gt 5000 then begin
+  if stregex(strtrim(sxpar(head,'cunit'+strtrim(veldim+1,2)),2),'m/s',/boolean,/fold_case) eq 1 or max(v0) gt 5000 then begin
     print,'Converting m/s to km/s'
     v0 /= 1e3 
   endif
@@ -62,8 +64,13 @@ if not gauss_exists then begin
   ;;cube = reverse(cube,2)
   ;;glon0 = reverse(glon0)
 
-  glon2d = glon0#(fltarr(n_elements(glat0))+1.0)
-  glat2d = (fltarr(n_elements(glon0))+1.0)#glat0
+  ;; Get proper coordinates using the WCS in the header
+  xx = lindgen(n_elements(glon0))#replicate(1L,n_elements(glat0))
+  yy = replicate(1L,n_elements(glon0))#lindgen(n_elements(glat0))
+  ADXY,head,xx,yy,glon2d,glat2d
+  
+  ;glon2d = glon0#(fltarr(n_elements(glat0))+1.0)
+  ;glat2d = (fltarr(n_elements(glon0))+1.0)#glat0
 
   ; missing data are set to roughly -1.52
   ;bd = where(cube lt -1,nbd)
