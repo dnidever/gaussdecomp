@@ -10,11 +10,12 @@ The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey a
 - parcheck.pro: Checks if Gaussians have "bad" parameters.  The thresholds for "bad" might need to be tweaked.
 - setlimits.pro: Set limits on all of the Gaussian parameters (height, velocity, width). 
 - hinoise.pro: The program that calculates the noise in each spectrum.  You should set which velocity range to use.
+However, for most cubes the defaults should be okay.
 
 
 ## Example
 
-The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small GASS cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters.
+The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small [GASS](https://www.atnf.csiro.au/research/GASS/index.html) ([McClure-Griffiths et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M)) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters.
 
 ```
 l = 295.0 deg
