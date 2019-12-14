@@ -3,7 +3,7 @@ Gaussian Decomposition program mainly for HI spectra
 
 This is the Gaussian Decomposition software described in [Nidever et al. (2008)](https://ui.adsabs.harvard.edu/abs/2008ApJ...679..432N/abstract) following the algorithm from [Haud (2000)](https://ui.adsabs.harvard.edu/abs/2000A%26A...364...83H).  While it was designed to be used for HI spectra, it can be used for other types of data like Halpha spectra.
 
-The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey and there are hard-coded settings that need to be modified for each data-set.  My plan is to modify the code at some point in the future to be more general and to allow these values to be more configurable.  Currently, I've been making data-set specific copies of five of the programs and modifying the settings.  The programs are:
+The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey and there are hard-coded settings that need modification for certain datasets.  My plan is to modify the code at some point in the future to be more general and to allow these values to be more configurable.  Currently, I've been making dataset-specific copies of five of the programs and modifying the settings.  The programs are:
 - gdriver.pro: Main driver program.  There are a few hard-coded defaults that you might want to change.
 - gloadspec.pro: Loads the cube.  You might want to make some modifications to how it loads the data.
 - gincrement.pro: Increments the current position.  Depending on the data the step-size will change.
@@ -12,6 +12,7 @@ The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey a
 - hinoise.pro: The program that calculates the noise in each spectrum.  You should set which velocity range to use.
 However, for most cubes the defaults should be okay.
 
+Note that I wrote this software as a first-year graduate student back in 2005 and I haven't had much time to optimize it since then.  One of my goals is to translate it to python and speed it up.
 
 ## Example
 
