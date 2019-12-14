@@ -1,4 +1,4 @@
-pro gdriver,lonstart,latstart,file=file,noprint=noprint,noplot=noplot,$
+pro gdriver,lonstart,latstart,cubefile=cubefile,file=file,noprint=noprint,noplot=noplot,$
             plotxr=plotxr,lonsgn=lonsgn,latsgn=latsgn,lonr=lonr,latr=latr,$
             trackplot=trackplot,noback=noback,backret=backret,gstruc=gstruc,$
             btrack=btrack,savestep=savestep,gassnum=gassnum,subcube=subcube
@@ -35,6 +35,7 @@ pro gdriver,lonstart,latstart,file=file,noprint=noprint,noplot=noplot,$
 ; INPUT
 ;  lonstart        The longitude to start with
 ;  latstart        The latitude to start with
+;  =cubefile       The filename of the main datacube.
 ;  lonr            Longitude range
 ;  latr            Latitude range
 ;  lonsgn          Direction of longitude increments (-1 or 1)
@@ -98,8 +99,6 @@ endflag = 0
 count = 0.
 
 ; Setting parameters
-;if n_elements(lonr) eq 0 then lonr = [0.,359.5]
-;if n_elements(latr) eq 0 then latr = [-90.,90.]
 if n_elements(lonr) eq 0 then lonr = [0.,2000.]
 if n_elements(latr) eq 0 then latr = [0.,2000.]
 if n_elements(lonsgn) eq 0 then lonsgn = 1.
@@ -114,6 +113,12 @@ if n_elements(wander) eq 0 then wander=0
 if keyword_set(wander) then backret=0
 if keyword_set(noback) then backret=0
 
+;; No cube filename input
+if n_elements(cubefile) eq 0 then begin
+  print,'Must input CUBEFILE'
+  return
+endif
+
 ; No mode selected, using default mode (backret)
 if (backret eq 0) and (noback eq 0) and (wander eq 0) then begin
   print,''
@@ -127,8 +132,6 @@ endif
 if not keyword_set(file) then begin
   date = strsplit(systime(0),/extract)
   time = strsplit(date(3),':',/extract)
-  ;monstr = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  ;monnum = indgen(12)+1
   ; gauss_Apr202005_080136.dat, day, month, year, hour, minute, second
   file = 'gauss_'+date(1)+date(2)+date(4)+'_'+time(0)+time(1)+time(2)+'.dat'
 endif
@@ -766,121 +769,16 @@ WHILE (endflag eq 0) do begin
     print,strout
 
     ;; Getting the HI spectrum
-    ;if (count eq 0) or (lat ne lastlat) or n_elements(cube) eq 0 then begin
-    ;  ;rdbruens,[lat,lat],cube,glonall,glatall,v0
-    ;  rdmatthews5,[lat,lat],cube,glonall,glatall,v0
-    ;  ;print,'LOADING DATA'
-    ;endif
-    ;spec = reform(cube[lon,0,*])
-    ;v = reform(v0[lon,0,*])
-    ;glon = glonall[lon]
-    ;glat = glatall[lon]
+    GLOADSPEC,cubefile,lon,lat,spec,v,glon,glat,npts=npts,noise=noise
 
-    ;; Getting the DATACUBE
-    ;if n_elements(cube) eq 0 then begin
-    ;  fits_read,'CA_subcube'+strtrim(subcube,2)+'.fits',cube,head
-    ;  fits_arrays,head,glon0,glat0,v0
-    ;  szcube = size(cube)
-    ;  ; flip velocity
-    ;  cube = reverse(cube,3)
-    ;  v0 = reverse(v0)
-    ;  glon2d = glon0#(fltarr(szcube[2])+1.0)
-    ;  glat2d = (fltarr(szcube[1])+1.0)#glat0
-    ;  print,'LOADING DATACUBE'
-    ;endif
-    ;; Getting the slice
-    ;if (count eq 0) or (lat ne lastlat) then begin
-    ;  ;rdbruens,[lat,lat],cube,glonall,glatall,v0
-    ;  ;rdmatthews5,[lat,lat],cube,glonall,glatall,v0
-    ;  slice = reform(cube[*,lat,*])
-    ;  glonall = glon2d[*,lat]
-    ;  glatall = glat2d[*,lat]
-    ;  print,'LOADING SLICE'
-    ;endif
-
-    ; Getting the DATACUBE
-    if n_elements(cube) eq 0 then begin
-      ;datadir = '/net/halo/dln5q/doradus/research/catalogs/gass/'
-      ;gassfiles = ['gass_-70_0_1111111001.fits','gass_-30_0_1111111001.fits',$
-      ;             'gass_10_0_1111111001.fits','gass_50_0_1111111001.fits']
-      ;if n_elements(subcube) eq 0 then subcube=0
-      ;print,'Restoring ',datadir+gassfiles[subcube]
-      ;FITS_READ,datadir+gassfiles[subcube],cube,head
-      if n_elements(gassnum) eq 0 or n_elements(subcube) eq 0 then begin
-        print,'Must enter GASSNUM (1-4) and SUBCUBE (1-5)'
-        return
-      endif
-      ;datadir = '/net/halo/dln5q/doradus/research/catalogs/gass/sub/'
-      ;datadir = '/Volumes/data/dnidever/gassga/data/'  ; on loa
-      datadir = '/Volumes/data/net/halo/dln5q/doradus/research/gassga/data/'   ; on turtle
-      gassbases = ['gass_-70_0_1111111001','gass_-30_0_1111111001',$
-                   'gass_10_0_1111111001','gass_50_0_1111111001']
-      gassfile = datadir+gassbases[gassnum-1]+'_sub'+strtrim(subcube,2)+'.fits'
-      FITS_READ,gassfile,cube,head      
-      fits_arrays,head,mlon0,mlat0,v0
-      v0 = v0/1000.  ; convert to km/s
-      
-      szcube = size(cube)
-
-      mlon2d = mlon0#(fltarr(szcube[2])+1.0)
-      mlat2d = (fltarr(szcube[1])+1.0)#mlat0
-
-      ;glon2d = glon0#(fltarr(szcube[2])+1.0)
-      ;glat2d = (fltarr(szcube[1])+1.0)#glat0
-      ;print,'LOADING DATACUBE'
-      ;slice = reform(cube[*,lat,*])
-      ;glonall = glon2d[*,lat]
-      ;glatall = glat2d[*,lat]
-      ;print,'LOADING SLICE'
-    endif
-    ;; Getting the slice
-    ;if (count eq 0) or (lat ne lastlat) then begin
-    ;  ;rdbruens,[lat,lat],cube,glonall,glatall,v0
-    ;  ;rdmatthews5,[lat,lat],cube,glonall,glatall,v0
-    ;  slice = reform(cube[*,lat,*])
-    ;  glonall = glon2d[*,lat]
-    ;  glatall = glat2d[*,lat]
-    ;  print,'LOADING SLICE'
-    ;endif
-
-    ;spec = reform(slice[lon,*])
-    ;v = v0
-    ;
-    ;glon = glonall[lon]
-    ;glat = glatall[lon]
-
-
-    ; Loading the spectrum
-    ;  lon == LATITUDE in cube
-    ;  lat == LONGIITUDE in cube
-    spec = reform(cube[lat,lon,*])
-    v = v0
-    glon = mlon2d[lat,lon]
-    glat = mlat2d[lat,lon]
-
-    ; No spectrum at this position, skip
-    gd = where(finite(spec) eq 1 and spec ne 0.0,ngd)
-    ;gd = where(finite(spec) eq 1,ngd)
-    ;mingood = 100            ; minimum number of GOOD spectral points (not NAN)
-    mingood = 50            ; minimum number of GOOD spectral points (not NAN)
-
-    ; Some spectra are not NAN but have basically no signal
-    ; dividing line for STDDEV is ~0.05
-    ; dividing ling for MAX is ~0.2
-    if ngd lt mingood OR (max(spec) lt 0.2 and stddev(spec) lt 0.05) then begin
+    ;; No good spectrum
+    if npts eq 0 then begin
       rms = 999999.
       noise = 999999.
       skip = 1
       goto,SKIP
-    end else begin
-      spec = spec(gd)
-      v = v(gd)
-    endelse
-    ;rdhispec,lon,lat,spec,v
-    npts = n_elements(v)
+    endif
 
-    ; Get noise level
-    hinoise,v,spec,noise
     smspec = savgolsm(spec,[10,10,2])
     dum = closest(0,v,ind=vindcen)
 
