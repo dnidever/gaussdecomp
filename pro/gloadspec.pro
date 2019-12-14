@@ -29,7 +29,7 @@ if not gauss_exists then begin
   endif else begin
     print,'Cannot determine velocity dimension from the header.  Assuming it is the last dimension'
     veldim = 2
-  endif
+  endelse
   
   ;; Assign arrays
   case veldim of

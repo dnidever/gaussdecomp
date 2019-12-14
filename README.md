@@ -14,6 +14,18 @@ However, for most cubes the defaults should be okay.
 
 Note that I wrote this software as a first-year graduate student back in 2005 and I haven't had much time to optimize it since then.  One of my goals is to translate it to python and speed it up.
 
+## Installation
+
+Clone the `gaussdecomp` GitHub repository to your computer:
+
+```
+git clone https://github.com/dnidever/gaussdecomp.git
+```
+
+You will also need to download the IDL Astronomer User's Library (if you haven't already).  You can use the [website](http://idlastro.gsfc.nasa.gov/ftp/) or the [GitHub repository](https://github.com/wlandsman/IDLAstro).
+
+Make sure to update your `IDL_PATH` environmental variable to include the paths to these two packages.
+
 ## Example
 
 The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small [GASS](https://www.atnf.csiro.au/research/GASS/index.html) ([McClure-Griffiths et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M)) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters:
@@ -158,6 +170,34 @@ Noise = 0.0489
 ```
 
 On my laptop the example datacube ran for 17 minutes.  The resulting file is called `gass.fits` and availabe in the `data/` directory, gzip-compressed.
+
+## Output catalog
+
+The final catalog contains 1923 Gaussians.  This is what the columns in the output catalog look like.
+
+```
+LON             FLOAT           2.00000
+LAT             FLOAT           1.00000
+RMS             FLOAT         0.0505933
+NOISE           FLOAT         0.0490385
+PAR             FLOAT     Array[3]
+SIGPAR          FLOAT     Array[3]
+GLON            FLOAT           295.424
+GLAT            FLOAT          -41.4000
+```
+
+The columns are:
+Column  |  Description
+------------ | -------------
+LON |  X position in the grid starting with 0.
+LAT |  Y position in the grid starting with 0.
+RMS |  RMS of the residuals.
+NOISE |  Noise level of the spectrum.
+PAR |  Gaussian parameters [height, center, sigma].
+SIGPAR |  Uncertainties in PAR.
+GLON |  Galactic longitude (or RA) for this position.
+GLAT |  Galactic latitude (or DEC) for this position.
+
 
 ## Plotting the Results
 
