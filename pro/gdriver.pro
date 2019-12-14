@@ -1026,8 +1026,10 @@ WHILE (endflag eq 0) do begin
   if not keyword_set(savestep) then savestep=50
   nsave = savestep
   if (long64(count)/long64(nsave) eq long64(count)/float(nsave)) then begin
-     SAVE,gstruc,btrack,file=file
      print,'SAVING DATA!'
+     MWRFITS,gstruc,file,/create
+     MWRFITS,btrack,file,/silent  ;; append
+     ;SAVE,gstruc,btrack,file=file
   endif
 
   ;ngstruc = n_elements(gstruc)
@@ -1057,7 +1059,10 @@ WHILE (endflag eq 0) do begin
 END  ; while endflag eq 0
 
 ; FINAL SAVE
-SAVE,gstruc,btrack,file=file
+print,'Saving data to ',file
+MWRFITS,gstruc,file,/create
+MWRFITS,btrack,file,/silent  ;; append
+;SAVE,gstruc,btrack,file=file
 
 BOMBEND:
 
