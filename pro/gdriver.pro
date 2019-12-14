@@ -56,7 +56,7 @@ pro gdriver,lonstart,latstart,file=file,noprint=noprint,noplot=noplot,$
 ;  btrack          Structure that keeps track of every move.
 ;
 ; PROGRAMS USED
-;  gaussfit4.pro   fits an hi spectrum with gaussians, using Haud's method
+;  gaussfit.pro   fits an hi spectrum with gaussians, using Haud's method
 ;  gfit.pro        fits gaussians to spectrum, given initial parameters
 ;  gdev.pro        returns deviants from gfunc
 ;  gdev1.pro       returns deviants from gfunc1
@@ -913,14 +913,14 @@ WHILE (endflag eq 0) do begin
 
 
     ; RUNNING GAUSSFIT ON ZERO VELOCITY REGION, WITH GUESS
-    gaussfit4,lon,lat,par0,sigpar0,rms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
+    gaussfit,lon,lat,par0,sigpar0,rms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
           /noprint,/noplot,inpar=guesspar,inv=v,inspec=spec
 
     ; FIT WITH NO GUESS (if first time and previous fit above with guess)
     tp0 = gfind(gstruc,lon,lat,lonr=lonr,latr=latr)
     if (tp0 eq 0) and (n_elements(guesspar) gt 1) then begin
 
-      gaussfit4,lon,lat,tpar0,tsigpar0,trms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
+      gaussfit,lon,lat,tpar0,tsigpar0,trms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
             /noprint,/noplot,inv=v,inspec=spec
    
       b = gbetter(par0,rms,noise,tpar0,trms,noise)
@@ -973,14 +973,14 @@ WHILE (endflag eq 0) do begin
 
 
     ; RUNNING GAUSSFIT ON EVERYTHING WITHOUT THE ZERO-VELOCITY REGION, WITH GUESS
-    gaussfit4,lon,lat,par0,sigpar0,rms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
+    gaussfit,lon,lat,par0,sigpar0,rms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
          /noprint,/noplot,inpar=guesspar2
 
 
     ; FIT WITH NO GUESS (if first time and previous fit above with guess)
     if (tp0 eq 0) and (n_elements(guesspar) gt 1) then begin
 
-      gaussfit4,lon,lat,tpar0,tsigpar0,trms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
+      gaussfit,lon,lat,tpar0,tsigpar0,trms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
            /noprint,/noplot
 
       b = gbetter(par0,rms,noise,tpar0,trms,noise)
