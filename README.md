@@ -23,7 +23,7 @@ width in l = 1 deg
 width in b = 1 deg
 ```
 
-`gass.in`
+The example script is `gass.in` and looks like this:
 
 ```
 spawn,'echo $HOST',host
@@ -46,37 +46,6 @@ The output should look something like this:
 ```
 IDL>@gass.in
 RUNNING THIS PROGRAM ON  NideverMacBookPro-2.local
-% Compiled module: GDRIVER.
-% Compiled module: GLOADSPEC.
-% Compiled module: GAUSSFIT.
-% Compiled module: GINCREMENT.
-% Compiled module: HINOISE.
-% Compiled module: GPLOT.
-% Compiled module: GFIND.
-% Compiled module: SETLIMITS.
-% Compiled module: PARCHECK.
-% Compiled module: GREMOVE.
-% Compiled module: GBETTER.
-% Compiled module: GBTRACK.
-% Compiled module: GCLEAN.
-% Compiled module: GDEV1.
-% Compiled module: GDEV.
-% Compiled module: GEST.
-% Compiled module: GFIT.
-% Compiled module: GFUNC1.
-% Compiled module: GFUNC.
-% Compiled module: GGUESS.
-% Compiled module: GHESS.
-% Compiled module: GIMAGE.
-% Compiled module: GPEAK.
-% Compiled module: GPEAK1.
-% Compiled module: GRECONPLOT.
-% Compiled module: GRECON.
-% Compiled module: GREDO.
-% Compiled module: GREMDUP.
-% Compiled module: GSORT.
-% Compiled module: GTRACKPLOT.
-% Compiled module: PRINTGPAR.
  RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS
 -----------------------------------------------------------
 % Compiled module: STRINGIZE.
@@ -95,32 +64,11 @@ Fitting Gaussians to the HI spectrum at (0.0,0.0)
 FORWARD
 % Compiled module: UNDEFINE.
 LOADING DATACUBE from ../data/gass_295_-41.fits.gz
-% Compiled module: FITS_READ.
-% Compiled module: FITS_OPEN.
-% Compiled module: SXPAR.
-% Compiled module: GETTOK.
-% Compiled module: VALID_NUM.
-% Compiled module: SXDELPAR.
-% Compiled module: TAG_EXIST.
-% Compiled module: SXADDPAR.
-% Compiled module: FITS_CLOSE.
-% Compiled module: FITS_ARRAYS.
 X = GLON-CAR  [X] = 13
 Y = GLAT-CAR  [Y] = 13
 Z = VELO-LSRK  [Z] = 1201
 Converting m/s to km/s
-% Compiled module: SAVGOLSM.
-% Compiled module: SAVGOL.
-% Compiled module: STDEV.
-% Compiled module: CLOSEST.
-% Compiled module: MINLOC.
-% Compiled module: FIRST_EL.
-% Compiled module: MAXMIN.
-% Compiled module: SLOPE.
-% Compiled module: SPLINE.
-% Compiled module: MPFIT.
-% Compiled module: GAREA.
-% Compiled module: REMOVE.
+
 ----------------------------------------------------------
  #       Height         Center         Width       Area
 ----------------------------------------------------------
@@ -207,6 +155,8 @@ Noise = 0.0489
 
 ```
 
+On my laptop the example datacube ran for 17 minutes.  The resulting file is called `gass.fits` and availabe in the `data/` directory, gzip-compressed.
+
 ## Plotting the Results
 
-The repository includes a plotting routine called `ghess.pro`.
+The repository includes a plotting routine called `ghess.pro` which is useful for general figures using the catalog of Gaussians.
