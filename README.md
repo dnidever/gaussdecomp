@@ -1,7 +1,7 @@
 # gaussdecomp
 Gaussian Decomposition program mainly for HI spectra
 
-This is the Gaussian Decomposition software described in [Nidever et al. (2008)](https://ui.adsabs.harvard.edu/abs/2008ApJ...679..432N/abstract) following the algorithm from Haud (2000).  While it was designed to be used for HI spectra, it can be used for other types of data like Halpha spectra.
+This is the Gaussian Decomposition software described in [Nidever et al. (2008)](https://ui.adsabs.harvard.edu/abs/2008ApJ...679..432N/abstract) following the algorithm from [Haud (2000)](https://ui.adsabs.harvard.edu/abs/2000A%26A...364...83H).  While it was designed to be used for HI spectra, it can be used for other types of data like Halpha spectra.
 
 The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey and there are hard-coded settings that need to be modified for each data-set.  My plan is to modify the code at some point in the future to be more general and to allow these values to be more configurable.  Currently, I've been making data-set specific copies of five of the programs and modifying the settings.  The programs are:
 - gdriver.pro: Main driver program.  There are a few hard-coded defaults that you might want to change.
@@ -15,7 +15,7 @@ However, for most cubes the defaults should be okay.
 
 ## Example
 
-The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small [GASS](https://www.atnf.csiro.au/research/GASS/index.html) ([McClure-Griffiths et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M)) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters.
+The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small [GASS](https://www.atnf.csiro.au/research/GASS/index.html) ([McClure-Griffiths et al. 2009](https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M)) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters:
 
 ```
 l = 295.0 deg
