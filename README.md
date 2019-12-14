@@ -173,7 +173,7 @@ On my laptop the example datacube ran for 8 minutes.  The resulting file is call
 
 ## Output catalog
 
-The final catalog contains 1923 Gaussians.  This is what the columns in the output catalog look like.
+The final example catalog contains 1923 Gaussians.  This is what the columns in the output catalog look like.
 
 ```
 LON             FLOAT           2.00000
