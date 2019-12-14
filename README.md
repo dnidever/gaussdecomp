@@ -160,3 +160,13 @@ On my laptop the example datacube ran for 17 minutes.  The resulting file is cal
 ## Plotting the Results
 
 The repository includes a plotting routine called `ghess.pro` which is useful for general figures using the catalog of Gaussians.
+
+Here's a simple figure just showing the total area of all the Gaussians in a given, essentially a column density map.
+
+```
+IDL>str = mrdfits('../data/gass.fits.gz',1)
+IDL>ghess,str,'lon','lat',dx=1,dy=1,/total,/log
+```
+
+![Coldens map](coldens_map.png)
+
