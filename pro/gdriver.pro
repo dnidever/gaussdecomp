@@ -809,7 +809,6 @@ WHILE (endflag eq 0) do begin
     vmin = v(lo)
     vmax = v(hi)
 
-
     ; RUNNING GAUSSFIT ON ZERO VELOCITY REGION, WITH GUESS
     gaussfit,lon,lat,par0,sigpar0,rms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
           /noprint,/noplot,inpar=guesspar,inv=v,inspec=spec

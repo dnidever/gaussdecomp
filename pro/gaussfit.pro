@@ -1,7 +1,7 @@
-pro gaussfit4,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$
-               ngauss=ngauss,noprint=noprint,color=color,$
-               vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$
-               inspec=inspec,diag=diag
+pro gaussfit,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$
+             ngauss=ngauss,noprint=noprint,color=color,$
+             vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$
+             inspec=inspec,diag=diag
 
 ;  This program tries to do gaussian analysis 
 ;  on HI spectra.
