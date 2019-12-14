@@ -13,6 +13,14 @@ The software was originally run on the Leiden-Argentine-Bonn all-sky HI survey a
 
 The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided:
 
+## Example
+
+https://www.astro.uni-bonn.de/hisurvey/gass/
+l = 295.0 deg
+b = -41.0 deg
+width in l = 1 deg
+width in b = 1 deg
+
 gass.in
 
 spawn,'echo $HOST',host
@@ -22,3 +30,6 @@ print,'RUNNING THIS PROGRAM ON ',host
 gdriver,lonr=[0,1250],latr=[0,550],file='gass3.dat',/noplot,$
         btrack=btrack,gstruc=gstruc,/backret,savestep=100,subcube=2
 
+## Plotting the Results
+
+The repository includes a plotting routine called `ghess.pro`.
