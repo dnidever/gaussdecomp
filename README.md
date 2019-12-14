@@ -169,7 +169,7 @@ Noise = 0.0489
 
 ```
 
-On my laptop the example datacube ran for 17 minutes.  The resulting file is called `gass.fits` and availabe in the `data/` directory, gzip-compressed.
+On my laptop the example datacube ran for 8 minutes.  The resulting file is called `gass.fits` and availabe in the `data/` directory, gzip-compressed.
 
 ## Output catalog
 
