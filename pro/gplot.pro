@@ -86,7 +86,8 @@ if not keyword_set(ytit) then ytit='T!dB!n (K)'
 ; Setting the ranges
 ;dy = max(y)-min(y)
 if (stddev(y) ne 0.) then begin
-  if keyword_set(yrange) then yr=yrange else yr = [min([y,result])-1,max([y,result])*1.1]
+  ;if keyword_set(yrange) then yr=yrange else yr = [min([y,result])-1.0,max([y,result])*1.1]
+  if keyword_set(yrange) then yr=yrange else yr = [min([y,result])-3.0,max([y,result])*1.1]
 endif else begin
   if keyword_set(yrange) then yr=yrange else yr = [min([y,result])-0.1,max([y,result])*1.1]
 endelse
@@ -113,9 +114,13 @@ endif ;
 if (ny gt 0) and (npar gt 0) and (not keyword_set(noresid)) then begin
   resid = y-result
   if stdev(y) ne 0. then begin 
-    oplot,v,resid-0.5,thick=thick
-    oplot,v,v*0.-0.5,thick=thick
-    xyouts,[xr(0)+0.1*range(xr)],[-0.85],'Residuals',charsize=charsize,charthick=charthick
+    ;oplot,v,resid-0.5,thick=thick
+    ;oplot,v,v*0.-0.5,thick=thick
+    ;xyouts,[xr(0)+0.1*range(xr)],[-0.85],'Residuals',charsize=charsize,charthick=charthick
+    oplot,v,resid-2.5,thick=thick
+    oplot,v,v*0.-2.5,thick=thick
+    ;xyouts,[xr(0)+0.1*range(xr)],[-2.5-0.35],'Residuals',charsize=charsize,charthick=charthick
+    xyouts,[xr(0)+0.1*range(xr)],[-1.5],'Residuals',charsize=charsize,charthick=charthick
   end
   ;oplot,v,resid-0.075*dy
 endif

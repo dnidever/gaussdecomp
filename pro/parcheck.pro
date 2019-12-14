@@ -30,6 +30,9 @@ endif
 
 flag = 0
 
+; Calculate dX
+dx = median(slope(x[0:(10<(npts-1))]))
+
 ; checking for bad stuff
 if npts lt 3 then flag = 1
 if npts lt npar then flag = 1
@@ -51,7 +54,8 @@ for i=0,ngauss-1 do begin
   if par(3*i+1) lt min(x) or par(3*i+1) gt max(x) then flag=1
 
   ; checking width
-  if par(3*i+2) le 1. then flag=1
+  ;if par(3*i+2) le 1. then flag=1
+  if par(3*i+2) le 0.5*dx then flag=1
   if par(3*i+2) gt (max(x)-min(x))*0.5 then flag=1
 end
 
