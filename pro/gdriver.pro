@@ -96,7 +96,8 @@ pro gdriver,lonstart,latstart,cubefile=cubefile,file=file,noprint=noprint,noplot
 ; Created by David Nidever April 2005
 
 endflag = 0
-count = 0.
+count = 0LL
+t0 = systime(1)
 
 ; Setting parameters
 if n_elements(lonr) eq 0 then lonr = [0.,2000.]
@@ -1058,10 +1059,13 @@ WHILE (endflag eq 0) do begin
 END  ; while endflag eq 0
 
 ; FINAL SAVE
+print,strtrim(n_elements(gstruc),2),' final Gaussians'
 print,'Saving data to ',file
 MWRFITS,gstruc,file,/create
 MWRFITS,btrack,file,/silent  ;; append
 ;SAVE,gstruc,btrack,file=file
+
+print,'dt = ',strtrim(systime(1)-t0,2),' sec.'
 
 BOMBEND:
 

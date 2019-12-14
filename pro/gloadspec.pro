@@ -25,7 +25,7 @@ if not gauss_exists then begin
   if stregex(strtrim(sxpar(head,'ctype2'),2),'vel',/boolean,/fold_case) eq 1 then veldim=1
   if stregex(strtrim(sxpar(head,'ctype3'),2),'vel',/boolean,/fold_case) eq 1 then veldim=2  
   if veldim ge 0 then begin
-    print,'Detected the velocity dimension is ',strtrim(veldim+1,2)
+    print,'Detected the velocity dimension as axis=',strtrim(veldim+1,2)
   endif else begin
     print,'Cannot determine velocity dimension from the header.  Assuming it is the last dimension'
     veldim = 2
@@ -67,10 +67,7 @@ if not gauss_exists then begin
   ;; Get proper coordinates using the WCS in the header
   xx = lindgen(n_elements(glon0))#replicate(1L,n_elements(glat0))
   yy = replicate(1L,n_elements(glon0))#lindgen(n_elements(glat0))
-  ADXY,head,xx,yy,glon2d,glat2d
-  
-  ;glon2d = glon0#(fltarr(n_elements(glat0))+1.0)
-  ;glat2d = (fltarr(n_elements(glon0))+1.0)#glat0
+  XYAD,head,xx,yy,glon2d,glat2d
 
   ; missing data are set to roughly -1.52
   ;bd = where(cube lt -1,nbd)
