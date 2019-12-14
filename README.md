@@ -177,7 +177,7 @@ Now let's plot the velocity of the Gaussian versus one of the coordinates and co
 IDL>ghess,str,'lon','cen',dx=1,dy=1,/total,/log
 ```
 
-![Velocity versus longitude](loncen.png)
+![Velocity versus longitude](cenlon.png)
 
 And, finally, we can also plot the distribution of the other Gaussian parameters.  Height versus sigma width.
 
