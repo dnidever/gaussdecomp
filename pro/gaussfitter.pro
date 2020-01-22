@@ -1,7 +1,7 @@
-pro gaussfit,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$
-             ngauss=ngauss,noprint=noprint,color=color,$
-             vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$
-             inspec=inspec,diag=diag
+pro gaussfitter,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$
+                ngauss=ngauss,noprint=noprint,color=color,$
+                vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$
+                inspec=inspec,diag=diag
 
 ;  This program tries to do gaussian analysis 
 ;  on HI spectra.
@@ -35,10 +35,10 @@ gt0 = systime(1)
 
 ; No Inputs
 if n_params() eq 0 then begin
-  print,'Syntax - gaussfit4,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$'
-  print,'                   ngauss=ngauss,noprint=noprint,color=color,$'
-  print,'                   vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$'
-  print,'                   inspec=inspec,diag=diag'
+  print,'Syntax - gaussfitter,l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=noplot,$'
+  print,'                     ngauss=ngauss,noprint=noprint,color=color,$'
+  print,'                     vmax=vmax,vmin=vmin,inpar=inpar,inv=inv,$'
+  print,'                     inspec=inspec,diag=diag'
   return
 endif
 

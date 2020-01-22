@@ -28,8 +28,9 @@ vmax = max(v)
 vmin = min(v)
 
 ; Velocity array not long enough
-if (vmin gt -250.) or (vmax lt 250.) then begin
-  print,'The velocity range must go beyond [-250,250] km/s'
+;if (vmin gt -250.) or (vmax lt 250.) then begin
+if (vmin gt -50.) and (vmax lt 50.) then begin
+  print,'The velocity range must go beyond [-50,50] km/s'
   noise = 999999.
   return
 endif
@@ -40,7 +41,8 @@ smspec4 = savgolsm(spec, [4,4,2])
 smspec16 = savgolsm(spec, [16,16,2])
 
 ; Points at high velocity
-gd1 = where(abs(v) gt 250.,ngd1)
+;gd1 = where(abs(v) gt 250.,ngd1)
+gd1 = where(abs(v) gt 50.,ngd1)
 diff = (spec-smspec16)(gd1)
 
 ; Points below the threshold

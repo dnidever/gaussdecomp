@@ -57,7 +57,7 @@ pro gdriver,lonstart,latstart,cubefile=cubefile,file=file,noprint=noprint,noplot
 ;  btrack          Structure that keeps track of every move.
 ;
 ; PROGRAMS USED
-;  gaussfit.pro   fits an hi spectrum with gaussians, using Haud's method
+;  gaussfitter.pro fits an hi spectrum with gaussians, using Haud's method
 ;  gfit.pro        fits gaussians to spectrum, given initial parameters
 ;  gdev.pro        returns deviants from gfunc
 ;  gdev1.pro       returns deviants from gfunc1
@@ -783,43 +783,45 @@ WHILE (endflag eq 0) do begin
     smspec = savgolsm(spec,[10,10,2])
     dum = closest(0,v,ind=vindcen)
 
-    ; GETTIING THE VELOCITY RANGE
+    ; GETTIING THE VELOCITY RANGE around the zero-velocity MW peak
 
-    ; finding the vel. low point
+    ;; finding the vel. low point
     flag=0
     i = vindcen
     while (flag eq 0) do begin
-      if smspec(i) le noise then lo = i
-      if smspec(i) le noise then flag = 1
+      if smspec[i] le noise then lo = i
+      if smspec[i] le noise then flag = 1
       i = i - 1
       if i lt 0 then flag=1
-    end
+    endwhile
+    if n_elements(lo) eq 0 then lo=0  ; never dropped below the noise threshold
     lo = 0 > (lo-20)
 
-    ; finding the vel. high point
+    ;; finding the vel. high point
     flag=0
     i = vindcen
     while (flag eq 0) do begin
-      if smspec(i) le noise then hi = i
-      if smspec(i) le noise then flag = 1
+      if smspec[i] le noise then hi = i
+      if smspec[i] le noise then flag = 1
       i = i + 1
       if i gt npts-1 then flag=1
-    end
+    endwhile
+    if n_elements(hi) eq 0 then hi=npts-1
     hi = (npts-1) < (hi+20)
     
-    vmin = v(lo)
-    vmax = v(hi)
+    vmin = v[lo]
+    vmax = v[hi]
 
-    ; RUNNING GAUSSFIT ON ZERO VELOCITY REGION, WITH GUESS
-    gaussfit,lon,lat,par0,sigpar0,rms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
-          /noprint,/noplot,inpar=guesspar,inv=v,inspec=spec
+    ; RUNNING GAUSSFITTER ON ZERO VELOCITY REGION, WITH GUESS
+    gaussfitter,lon,lat,par0,sigpar0,rms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
+                /noprint,/noplot,inpar=guesspar,inv=v,inspec=spec
 
     ; FIT WITH NO GUESS (if first time and previous fit above with guess)
     tp0 = gfind(gstruc,lon,lat,lonr=lonr,latr=latr)
     if (tp0 eq 0) and (n_elements(guesspar) gt 1) then begin
 
-      gaussfit,lon,lat,tpar0,tsigpar0,trms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
-            /noprint,/noplot,inv=v,inspec=spec
+      gaussfitter,lon,lat,tpar0,tsigpar0,trms,noise,v2,spec2,resid2,vmin=vmin,vmax=vmax,$
+                  /noprint,/noplot,inv=v,inspec=spec
    
       b = gbetter(par0,rms,noise,tpar0,trms,noise)
 
@@ -870,16 +872,16 @@ WHILE (endflag eq 0) do begin
     endelse
 
 
-    ; RUNNING GAUSSFIT ON EVERYTHING WITHOUT THE ZERO-VELOCITY REGION, WITH GUESS
-    gaussfit,lon,lat,par0,sigpar0,rms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
-         /noprint,/noplot,inpar=guesspar2
+    ; RUNNING GAUSSFITTER ON EVERYTHING WITHOUT THE ZERO-VELOCITY REGION, WITH GUESS
+    gaussfitter,lon,lat,par0,sigpar0,rms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
+                /noprint,/noplot,inpar=guesspar2
 
 
     ; FIT WITH NO GUESS (if first time and previous fit above with guess)
     if (tp0 eq 0) and (n_elements(guesspar) gt 1) then begin
 
-      gaussfit,lon,lat,tpar0,tsigpar0,trms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
-           /noprint,/noplot
+      gaussfitter,lon,lat,tpar0,tsigpar0,trms,noise,v3,spec3,resid3,inv=inv,inspec=inspec,$
+                  /noprint,/noplot
 
       b = gbetter(par0,rms,noise,tpar0,trms,noise)
 
