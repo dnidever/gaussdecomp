@@ -46,12 +46,14 @@ gd1 = where(abs(v) gt 50.,ngd1)
 diff = (spec-smspec16)(gd1)
 
 ; Points below the threshold
-thresh = 5.*stdev(diff) > 0.5
+;thresh = 5.*stdev(diff) > 0.5
+thresh = 5.*mad(diff) > 0.2
 gd2 = where(diff lt thresh, ngd2)
 ;if ngd2 eq 0 then stop
 
 ; Estimating the noise
-noise = stddev(diff(gd2))
+;noise = stddev(diff(gd2))
+noise = mad(diff[gd2])
 
 ;stop
 
