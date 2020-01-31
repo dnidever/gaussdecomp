@@ -37,23 +37,21 @@ noise = -1
 par = -1
 ind = -1
 
-ngstruc = n_elements(gstruc)
 nlon = n_elements(lon)
 nlat = n_elements(lat)
 
 ; Bad Input Values
-if (n_params() eq 0) or (ngstruc eq 0) or (nlon eq 0) or (nlat eq 0) then begin
+if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) then begin
   print,'Syntax - f = gfind(lon,lat,ind=ind,rms=rms,noise=noise,'
   print,'                   par=par,lonr=lonr,latr=latr)'
   return,-1
 endif
 
 ; Making sure it's the right structure
-;if (n_tags(gstruc) eq 0) then return,-1
-tags = tag_names(!gstruc.data)
-if (n_elements(tags) ne 6) then return,-1
-comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
-if ((where(comp ne 1))(0) ne -1) then return,-1
+;tags = tag_names(!gstruc.data)
+;if (n_elements(tags) ne 6) then return,-1
+;comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
+;if ((where(comp ne 1))(0) ne -1) then return,-1
 
 ; setting the ranges
 if keyword_set(lonr) then begin
@@ -77,31 +75,49 @@ if (lon lt lon0) or (lon gt lon1) or (lat lt lat0) or (lat gt lat1) then begin
   noise = -1
   par = -1
   ind = -1
-  goto,BOMB
+  return,flag
+endif
+
+;; No !gstruc yet, first position
+DEFSYSV,'gstruc',exists=gstruc_exists
+if gstruc_exists eq 0 then begin
+  rms = -1
+  noise = -1
+  par = -1
+  ind = -1
+  flag = 0
+  return,flag
 endif
 
 ; Looking for the position
 t0 = systime(1)
-ind = where(!gstruc.data.lon eq lon and !gstruc.data.lat eq lat,nind)
+;; LONSTART/LATSTART has a value for each position, faster searching
+;;  use NGAUSS and INDSTART to get the indices into DATA
+pind = where(!gstruc.lonstart eq lon and !gstruc.latstart eq lat,npind)
+if npind gt 0 then begin
+  ind = l64indgen(!gstruc.ngauss[pind[0]])+!gstruc.indstart[pind[0]]
+  nind = n_elements(ind)
+endif else begin
+  ind = -1
+  nind = 0
+endelse
+
 print,'find ',systime(1)-t0
 
 ; Found something, getting the values
-if nind gt 0 then rms = first_el(!gstruc.data[ind].rms)
-if nind gt 0 then noise = first_el(!gstruc.data[ind].noise)
-if nind gt 0 then par = (!gstruc.data[ind].par)(*)
+if nind gt 0 then begin
+  rms = first_el(!gstruc.data[ind].rms)
+  noise = first_el(!gstruc.data[ind].noise)
+  par = (!gstruc.data[ind].par)(*)
+  flag = 1
 
-; Nothing found
-if nind eq 0 then rms = -1
-if nind eq 0 then noise = -1
-if nind eq 0 then par = -1
-
-; Setting flag value
-if nind eq 0 then flag = 0
-if nind gt 0 then flag=1
-
-BOMB:
-
-;stop
+;; Nothing found
+endif else begin
+  rms = -1
+  noise = -1
+  par = -1
+  flag = 0
+endelse
 
 return,flag
 

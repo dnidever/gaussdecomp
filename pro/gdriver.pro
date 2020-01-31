@@ -129,6 +129,9 @@ if (backret eq 0) and (noback eq 0) and (wander eq 0) then begin
   backret=1
 endif
 
+;; Restore file
+restore_file = repstr(file,'.fits','_restore.sav')
+
 ; checking the file
 if not keyword_set(file) then begin
   date = strsplit(systime(0),/extract)
@@ -186,6 +189,7 @@ lat = latstart
 ;lon = lonr(0)
 ;lat = latr(0)
 
+np = 99
 btrack_schema = {count:999999.,lon:999999.,lat:999999.,rms:999999.,noise:999999.,par:fltarr(np)+999999,$
                  guesspar:fltarr(np)+999999.,guesslon:999999.,guesslat:999999.,back:999999.,redo:999999.,$
                  redo_fail:999999.,skip:999999.,lastlon:999999.,lastlat:999999.}
@@ -236,6 +240,8 @@ WHILE (endflag eq 0) do begin
     lastlat = btrack[nbtrack-1].lastlat
     btrack_add,brack
     gstruc_add,gstruc
+
+   ;; REALLY NEED !GSTRUC AND !BTRACK
 
     count = count+1
     lastlon = lon
@@ -742,7 +748,8 @@ WHILE (endflag eq 0) do begin
   
   ; Starting the tracking structure, bad until proven good
   np = 99 ;100 ;45
-  if keyword_set(!btrack) then np = n_elements(!btrack.data[0].par) > 99 ;100 ;45
+  DEFSYSV,'btrack',exists=btrack_exists
+  if btrack_exists eq 1 then np = n_elements(!btrack.data[0].par) > 99 ;100 ;45
   track = {count:999999.,lon:999999.,lat:999999.,rms:999999.,noise:999999.,par:fltarr(np)+999999,$
            guesspar:fltarr(np)+999999.,guesslon:999999.,guesslat:999999.,back:999999.,redo:999999.,$
            redo_fail:999999.,skip:999999.,lastlon:999999.,lastlat:999999.}
@@ -1048,7 +1055,7 @@ print,'this iteration ',systime(1)-t00
      print,'SAVING DATA!'
      MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
      MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
-     ;SAVE,gstruc,btrack,file=file
+     SAVE,!gstruc,!btrack,file=restore_file
   endif
 
   ;ngstruc = n_elements(gstruc)
@@ -1081,9 +1088,8 @@ ENDWHILE  ; while endflag eq 0
 print,strtrim(n_elements(gstruc),2),' final Gaussians'
 print,'Saving data to ',file
 MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
-;MWRFITS,gstruc,file,/create
 MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
-;SAVE,gstruc,btrack,file=file
+SAVE,!gstruc,!btrack,file=restore_file
 
 print,'dt = ',strtrim(systime(1)-tstart,2),' sec.'
 
