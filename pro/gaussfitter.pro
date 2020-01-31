@@ -54,12 +54,12 @@ if not keyword_set(noprint) then begin
 endif
 
 ; Getting the HI spectrum
-if keyword_set(inv) and keyword_set(inspec) then begin
+if n_elements(inv) gt 0 and n_elements(inspec) gt 0 then begin
   v = inv
   spec = inspec
 endif else begin
   rdhispec,l,b,spec,v
-end
+endelse
 
 ; Estimating the noise
 hinoise,v,spec,noise
@@ -76,8 +76,8 @@ gd = where(v ge vmin and v le vmax,ngd)
 old_v = v
 old_spec = spec
 spec = spec(gd)
-v = v(gd)
-dv = v(1)-v(0)
+v = v[gd]
+dv = v[1]-v[0]
 vmin = min(v)
 vmax = max(v)
 dum = closest(0,v,ind=vindcen)

@@ -5,9 +5,9 @@ pro gpeak1,smresid,top,maxarr
   ; getting maxima
   maxmin,smresid,minarr,maxarr
   if maxarr(0) ne -1 then begin
-    gd = where(smresid(maxarr) gt top,ngd)
+    gd = where(smresid[maxarr] gt top,ngd)
     if ngd gt 0 then begin
-      maxarr = maxarr(gd)
+      maxarr = maxarr[gd]
     endif else begin
       maxarr = -1
     endelse

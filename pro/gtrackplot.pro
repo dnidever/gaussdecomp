@@ -1,4 +1,4 @@
-pro gtrackplot,lon,lat,lastlon,lastlat,redo,gstruc,count,lonr=lonr,latr=latr,$
+pro gtrackplot,lon,lat,lastlon,lastlat,redo,count,lonr=lonr,latr=latr,$
                save=save,pstr=pstr,xstr=xstr,ystr=ystr
 
 ; This program plots the progression of the
@@ -8,7 +8,6 @@ pro gtrackplot,lon,lat,lastlon,lastlat,redo,gstruc,count,lonr=lonr,latr=latr,$
 ;   lon     Current longitude
 ;   lat     Current latitude
 ;   redo    Redo parameter
-;   gstruc  Structure of gaussian parameters
 ;   count   Count
 ;   lonr    Two element array of longitude limits
 ;   latr    Two element array of latitude limits
@@ -31,20 +30,18 @@ pro gtrackplot,lon,lat,lastlon,lastlat,redo,gstruc,count,lonr=lonr,latr=latr,$
 nlon = n_elements(lon)
 nlat = n_elements(lat)
 nredo = n_elements(redo)
-ngstruc = n_elements(gstruc)
 ncount = n_elements(count)
 
 ; Bad Input Values
 if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) or (nredo eq 0) or $
-     (ngstruc eq 0) or (ncount eq 0) then begin
-  print,'Syntax - gtrackplot,lon,lat,redo,gstruc,count,lonr=lonr,'
+     (ncount eq 0) then begin
+  print,'Syntax - gtrackplot,lon,lat,redo,count,lonr=lonr,'
   print,'                    latr=latr,save=save'
   return
 endif
 
 ; Making sure it's the right structure
-if (n_tags(gstruc) eq 0) then return
-tags = tag_names(gstruc)
+tags = tag_names(!gstruc.data)
 if (n_elements(tags) ne 6) then return
 comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
 if ((where(comp ne 1))(0) ne -1) then return
@@ -114,9 +111,9 @@ if (count eq 1) then begin
   ;stop
 
   ; overplotting the points already completed
-  if keyword_set(gstruc) then begin
-    larr2 = gstruc.lon
-    barr2 = gstruc.lat
+  if keyword_set(!gstruc.data) then begin
+    larr2 = !gstruc.data.lon
+    barr2 = !gstruc.data.lat
     oplot,larr2,barr2,ps=8,co=green
     ;oplot,larr2,barr2,ps=8,co=green
 

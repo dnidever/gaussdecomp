@@ -21,9 +21,12 @@ if not gauss_exists then begin
 
   ;; Which dimension is velocity
   veldim = -1
-  if stregex(strtrim(sxpar(head,'ctype1'),2),'vel',/boolean,/fold_case) eq 1 then veldim=0
-  if stregex(strtrim(sxpar(head,'ctype2'),2),'vel',/boolean,/fold_case) eq 1 then veldim=1
-  if stregex(strtrim(sxpar(head,'ctype3'),2),'vel',/boolean,/fold_case) eq 1 then veldim=2  
+  if stregex(strtrim(sxpar(head,'ctype1'),2),'vel',/boolean,/fold_case) eq 1 or $
+     stregex(strtrim(sxpar(head,'ctype1'),2),'vrad',/boolean,/fold_case) eq 1 then veldim=0
+  if stregex(strtrim(sxpar(head,'ctype2'),2),'vel',/boolean,/fold_case) eq 1 or $
+     stregex(strtrim(sxpar(head,'ctype2'),2),'vrad',/boolean,/fold_case) eq 1 then veldim=1
+  if stregex(strtrim(sxpar(head,'ctype3'),2),'vel',/boolean,/fold_case) eq 1 or $
+     stregex(strtrim(sxpar(head,'ctype3'),2),'vrad',/boolean,/fold_case) eq 1 then veldim=2  
   if veldim ge 0 then begin
     print,'Detected the velocity dimension as axis=',strtrim(veldim+1,2)
   endif else begin
@@ -55,6 +58,13 @@ if not gauss_exists then begin
   if stregex(strtrim(sxpar(head,'cunit'+strtrim(veldim+1,2)),2),'m/s',/boolean,/fold_case) eq 1 or max(v0) gt 5000 then begin
     print,'Converting m/s to km/s'
     v0 /= 1e3 
+  endif
+
+  ;; Flip velocity/spectrum so that velocity is increasing
+  if v0[1]-v0[0] lt 0 then begin
+    print,'Flipping velocity/spectrum so that velocity is increasing'
+    v0 = reverse(v0)
+    cube = reverse(cube,veldim+1,/overwrite)
   endif
 
   ;; flip velocity

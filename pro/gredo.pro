@@ -1,4 +1,4 @@
-function gredo,lon,lat,guesslon,guesslat,guesspar,btrack
+function gredo,lon,lat,guesslon,guesslat,guesspar
 
 ; This function checks wether we can redo this location again
 ; returns 1 if this redo is okay
@@ -10,7 +10,6 @@ function gredo,lon,lat,guesslon,guesslat,guesspar,btrack
 ;   guesslon  Longitude of guess position
 ;   guesslat  Latitude of guess position
 ;   guesspar  Guess parameters
-;   btrack    Tracking structure
 ;
 ;  OUTPUT
 ;   flag      Function value is either:
@@ -30,18 +29,16 @@ nlat = n_elements(lat)
 nglon = n_elements(guesslon)
 nglat = n_elements(guesslat)
 ngpar = n_elements(guesspar)
-nbtrack = n_elements(btrack)
 
 ; Bad Input Values
 if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) and (nglon eq 0) or $
-     (nglat eq 0) or (ngpar eq 0) or (nbtrack eq 0) then begin
-  print,'Syntax - redo = gredo(lon,lat,guesslon,guesslat,guesspar,btrack)'
+     (nglat eq 0) or (ngpar eq 0) then begin
+  print,'Syntax - redo = gredo(lon,lat,guesslon,guesslat,guesspar)'
   return,-1
 endif
 
 ; Making sure it's the right structure
-if (n_tags(btrack) eq 0) then return,-1
-tags = tag_names(btrack)
+tags = tag_names(!btrack.data)
 if (n_elements(tags) ne 15) then return,-1
 btags = ['COUNT','LON','LAT','RMS','NOISE','PAR','GUESSPAR','GUESSLON','GUESSLAT'$
        ,'BACK','REDO','REDO_FAIL','SKIP','LASTLON','LASTLAT']
@@ -52,7 +49,7 @@ if ((where(comp ne 1))(0) ne -1) then return,-1
 flag = 1   ; do it unless proven wrong
 
 ; FROM **ANY** PREVIOUS POSITION
-prev = where(btrack.lon eq lon and btrack.lat eq lat, nprev)
+prev = where(!btrack.data.lon eq lon and !btrack.data.lat eq lat, nprev)
 
 ;prev = where(btrack.lon eq lon and btrack.lat eq lat $
 ;             and btrack.guesslon eq guesslon and btrack.guesslat eq guesslat, nprev)
@@ -73,7 +70,7 @@ if (nprev gt 0) then begin
 
   ; Looping through the previous ones
   for i=0,nprev-1 do begin
-    guesspar2 = btrack(prev(i)).guesspar
+    guesspar2 = !btrack.data[prev[i]].guesspar
     gd2 = where(guesspar2 ne 999999.,ngd2)
    
     ; some gaussians found

@@ -1,4 +1,4 @@
-pro gguess,lon,lat,gstruc,guesspar,guesslon,guesslat,lonsgn=lonsgn,latsgn=latsgn,$
+pro gguess,lon,lat,guesspar,guesslon,guesslat,lonsgn=lonsgn,latsgn=latsgn,$
            lonr=lonr,latr=latr
 
 ; This program finds the best guess for the new profile
@@ -8,7 +8,6 @@ pro gguess,lon,lat,gstruc,guesspar,guesslon,guesslat,lonsgn=lonsgn,latsgn=latsgn
 ;  INPUT
 ;   lon      Longitude of current position
 ;   lat      Latitude of current position
-;   gstruc   Structure of gaussian parameters
 ;   lonsgn   Sign of longitude increment
 ;   latsgn   Sign of latitude increment
 ;   lonr     Two element array of longitude limits
@@ -35,18 +34,16 @@ guesslat = 999999.
 
 nlon = n_elements(lon)
 nlat = n_elements(lat)
-ngstruc = n_elements(gstruc)
 
 ; Bad Input Values
-if (n_params() eq 0) or (ngstruc eq 0) or (nlon eq 0) or (nlat eq 0) then begin
-  print,'Syntax - gguess,lon,lat,gstruc,guesspar,guesslon,guesslat,'
+if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) then begin
+  print,'Syntax - gguess,lon,lat,guesspar,guesslon,guesslat,'
   print,'                lonsgn=lonsgn,latsgn=latsgn,lonr=lonr,latr=latr'
   return
 endif
 
 ; Making sure it's the right structure
-if (n_tags(gstruc) eq 0) then return
-tags = tag_names(gstruc)
+tags = tag_names(!gstruc.data)
 if (n_elements(tags) ne 6) then return
 comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
 if ((where(comp ne 1))(0) ne -1) then return
@@ -100,8 +97,8 @@ if (lon eq lonr(1)) and (lonsgn eq -1) and (cont eq 0) then begin
 end
 
 ; Have they been visited before?
-p3 = gfind(gstruc,lon3,lat3,ind=ind3,rms=rms3,noise=noise3,par=par3)
-p4 = gfind(gstruc,lon4,lat4,ind=ind4,rms=rms4,noise=noise4,par=par4)
+p3 = gfind(lon3,lat3,ind=ind3,rms=rms3,noise=noise3,par=par3)
+p4 = gfind(lon4,lat4,ind=ind4,rms=rms4,noise=noise4,par=par4)
 
 ; Comparing the solutions
 b34 = gbetter(par3,rms3,noise3,par4,rms4,noise4)

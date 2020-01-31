@@ -1,4 +1,4 @@
-function gfind,gstruc,lon,lat,ind=ind,rms=rms,noise=noise,$
+function gfind,lon,lat,ind=ind,rms=rms,noise=noise,$
          par=par,lonr=lonr,latr=latr
 
 
@@ -6,7 +6,6 @@ function gfind,gstruc,lon,lat,ind=ind,rms=rms,noise=noise,$
 ; the gaussian components structure.
 ;
 ;  INPUT
-;   gstruc  Structure of gaussian parameters
 ;   lon     Longitude to search for
 ;   lat     Latitude to search for
 ;   lonr    Two element array of longitude limits, lonr=[lonmin,lonmax]
@@ -44,14 +43,14 @@ nlat = n_elements(lat)
 
 ; Bad Input Values
 if (n_params() eq 0) or (ngstruc eq 0) or (nlon eq 0) or (nlat eq 0) then begin
-  print,'Syntax - f = gfind(gstruc,lon,lat,ind=ind,rms=rms,noise=noise,'
+  print,'Syntax - f = gfind(lon,lat,ind=ind,rms=rms,noise=noise,'
   print,'                   par=par,lonr=lonr,latr=latr)'
   return,-1
 endif
 
 ; Making sure it's the right structure
-if (n_tags(gstruc) eq 0) then return,-1
-tags = tag_names(gstruc)
+;if (n_tags(gstruc) eq 0) then return,-1
+tags = tag_names(!gstruc.data)
 if (n_elements(tags) ne 6) then return,-1
 comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
 if ((where(comp ne 1))(0) ne -1) then return,-1
@@ -82,12 +81,14 @@ if (lon lt lon0) or (lon gt lon1) or (lat lt lat0) or (lat gt lat1) then begin
 endif
 
 ; Looking for the position
-ind = where(gstruc.lon eq lon and gstruc.lat eq lat,nind)
+t0 = systime(1)
+ind = where(!gstruc.data.lon eq lon and !gstruc.data.lat eq lat,nind)
+print,'find ',systime(1)-t0
 
 ; Found something, getting the values
-if nind gt 0 then rms = first_el(gstruc(ind).rms)
-if nind gt 0 then noise = first_el(gstruc(ind).noise)
-if nind gt 0 then par = (gstruc(ind).par)(*)
+if nind gt 0 then rms = first_el(!gstruc.data[ind].rms)
+if nind gt 0 then noise = first_el(!gstruc.data[ind].noise)
+if nind gt 0 then par = (!gstruc.data[ind].par)(*)
 
 ; Nothing found
 if nind eq 0 then rms = -1
