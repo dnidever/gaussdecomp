@@ -1055,7 +1055,9 @@ print,'this iteration ',systime(1)-t00
      print,'SAVING DATA!'
      MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
      MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
-     SAVE,!gstruc,!btrack,file=restore_file
+     gstruc = !gstruc & btrack = !btrack
+     SAVE,gstruc,btrack,file=restore_file
+     undefine,gstruc,btrack
   endif
 
   ;ngstruc = n_elements(gstruc)
@@ -1089,7 +1091,9 @@ print,strtrim(n_elements(gstruc),2),' final Gaussians'
 print,'Saving data to ',file
 MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
 MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
-SAVE,!gstruc,!btrack,file=restore_file
+gstruc = !gstruc & btrack = !btrack
+SAVE,gstruc,btrack,file=restore_file
+undefine,gstruc,btrack
 
 print,'dt = ',strtrim(systime(1)-tstart,2),' sec.'
 
