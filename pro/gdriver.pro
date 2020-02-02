@@ -331,10 +331,10 @@ WHILE (endflag eq 0) do begin
       back = 0
 
       nbtrack = !btrack.count
-      newlon = !btrack.data[nbtrack-1].lastlon
-      newlat = !btrack.data[nbtrack-1].lastlat
-      lastlon = !btrack.data[nbtrack-1].lon
-      lastlat = !btrack.data[nbtrack-1].lat
+      newlon = (*(!btrack.data))[nbtrack-1].lastlon
+      newlat = (*(!btrack.data))[nbtrack-1].lastlat
+      lastlon = (*(!btrack.data))[nbtrack-1].lon
+      lastlat = (*(!btrack.data))[nbtrack-1].lat
 
       ; p0 is the redo position, p5 is the pre-redo position
       p0 = gfind(lastlon,lastlat,ind=ind0,rms=rms0,noise=noise0,par=par0,lonr=lonr,latr=latr)
@@ -376,8 +376,8 @@ WHILE (endflag eq 0) do begin
     If (redo eq 1) and (redo_fail eq 1) and (back eq 1) then begin
       ; Go back to pre-redo position
       nbtrack = !btrack.count
-      lon = !btrack.data[nbtrack-1].lastlon
-      lat = !btrack.data[nbtrack-1].lastlat
+      lon = (*(!btrack.data))[nbtrack-1].lastlon
+      lat = (*(!btrack.data))[nbtrack-1].lastlat
     endif
 
     ;---- CHECKING BACKWARDS ----
@@ -748,8 +748,8 @@ WHILE (endflag eq 0) do begin
   
   ; Starting the tracking structure, bad until proven good
   np = 99 ;100 ;45
-  DEFSYSV,'btrack',exists=btrack_exists
-  if btrack_exists eq 1 then np = n_elements(!btrack.data[0].par) > 99 ;100 ;45
+  DEFSYSV,'!btrack',exists=btrack_exists
+  if btrack_exists eq 1 then np = n_elements((*(!btrack.data))[0].par) > 99 ;100 ;45
   track = {count:999999.,lon:999999.,lat:999999.,rms:999999.,noise:999999.,par:fltarr(np)+999999,$
            guesspar:fltarr(np)+999999.,guesslon:999999.,guesslat:999999.,back:999999.,redo:999999.,$
            redo_fail:999999.,skip:999999.,lastlon:999999.,lastlat:999999.}
@@ -1025,7 +1025,7 @@ print,'gstruc ',systime(1)-t1
 
   ; increasing btrack parameter arrays
   if (count gt 0) then begin
-    nbpar = n_elements(!btrack.data[0].par)
+    nbpar = n_elements((*(!btrack.data))[0].par)
     ;if (npar gt nbpar) then gbtrack,btrack,tstr  ;; this is done in btrack_add.pro
     if (npar gt nbpar) then gbtrack,track,tstr
   endif
@@ -1053,8 +1053,8 @@ print,'this iteration ',systime(1)-t00
   nsave = savestep
   if (long64(count)/long64(nsave) eq long64(count)/float(nsave)) then begin
      print,'SAVING DATA!'
-     MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
-     MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
+     MWRFITS,(*(!gstruc.data))[0:!gstruc.count-1],file,/create
+     MWRFITS,(*(!btrack.data))[0:!btrack.count-1],file,/silent  ;; append
      gstruc = !gstruc & btrack = !btrack
      SAVE,gstruc,btrack,file=restore_file
      undefine,gstruc,btrack
@@ -1089,8 +1089,8 @@ ENDWHILE  ; while endflag eq 0
 ; FINAL SAVE
 print,strtrim(n_elements(gstruc),2),' final Gaussians'
 print,'Saving data to ',file
-MWRFITS,!gstruc.data[0:!gstruc.count-1],file,/create
-MWRFITS,!btrack.data[0:!btrack.count-1],file,/silent  ;; append
+MWRFITS,(*(!gstruc.data))[0:!gstruc.count-1],file,/create
+MWRFITS,(*(!btrack.data))[0:!btrack.count-1],file,/silent  ;; append
 gstruc = !gstruc & btrack = !btrack
 SAVE,gstruc,btrack,file=restore_file
 undefine,gstruc,btrack

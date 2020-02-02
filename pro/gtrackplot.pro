@@ -41,7 +41,7 @@ if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) or (nredo eq 0) or $
 endif
 
 ; Making sure it's the right structure
-tags = tag_names(!gstruc.data)
+tags = tag_names(*(!gstruc.data))
 if (n_elements(tags) ne 6) then return
 comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
 if ((where(comp ne 1))(0) ne -1) then return
@@ -111,9 +111,10 @@ if (count eq 1) then begin
   ;stop
 
   ; overplotting the points already completed
-  if keyword_set(!gstruc.data) then begin
-    larr2 = !gstruc.data.lon
-    barr2 = !gstruc.data.lat
+  DEFSYSV,'!gstruc',exists=gstruc_exists
+  if gstruc_exists then begin
+    larr2 = (*(!gstruc.data)).lon
+    barr2 = (*(!gstruc.data)).lat
     oplot,larr2,barr2,ps=8,co=green
     ;oplot,larr2,barr2,ps=8,co=green
 

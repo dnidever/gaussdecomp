@@ -79,7 +79,7 @@ if (lon lt lon0) or (lon gt lon1) or (lat lt lat0) or (lat gt lat1) then begin
 endif
 
 ;; No !gstruc yet, first position
-DEFSYSV,'gstruc',exists=gstruc_exists
+DEFSYSV,'!gstruc',exists=gstruc_exists
 if gstruc_exists eq 0 then begin
   rms = -1
   noise = -1
@@ -93,9 +93,9 @@ endif
 t0 = systime(1)
 ;; LONSTART/LATSTART has a value for each position, faster searching
 ;;  use NGAUSS and INDSTART to get the indices into DATA
-pind = where(!gstruc.lonstart eq lon and !gstruc.latstart eq lat,npind)
+pind = where(*(!gstruc.lonstart) eq lon and *(!gstruc.latstart) eq lat,npind)
 if npind gt 0 then begin
-  ind = l64indgen(!gstruc.ngauss[pind[0]])+!gstruc.indstart[pind[0]]
+  ind = l64indgen((*(!gstruc.ngauss))[pind[0]])+(*(!gstruc.indstart))[pind[0]]
   nind = n_elements(ind)
 endif else begin
   ind = -1
@@ -106,9 +106,9 @@ print,'find ',systime(1)-t0
 
 ; Found something, getting the values
 if nind gt 0 then begin
-  rms = first_el(!gstruc.data[ind].rms)
-  noise = first_el(!gstruc.data[ind].noise)
-  par = (!gstruc.data[ind].par)(*)
+  rms = first_el((*(!gstruc.data))[ind].rms)
+  noise = first_el((*(!gstruc.data))[ind].noise)
+  par = ((*(!gstruc.data))[ind].par)(*)
   flag = 1
 
 ;; Nothing found
