@@ -11,7 +11,7 @@ btrack_schema = {count:999999.,lon:999999.,lat:999999.,rms:999999.,noise:999999.
 DEFSYSV,'!btrack',exists=btrack_exists
 if not keyword_set(btrack_exists) then begin
   DEFSYSV,'!btrack',{data:ptr_new(),ndata:0LL,count:0LL}
-  !btrack.data = replicate(btrack_schema,100000L)
+  !btrack.data = ptr_new(replicate(btrack_schema,100000L))
   !btrack.ndata = 100000LL
   !btrack.count = 0LL
 endif

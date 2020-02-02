@@ -38,7 +38,7 @@ if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) and (nglon eq 0) or $
 endif
 
 ; Making sure it's the right structure
-tags = tag_names(!btrack.data)
+tags = tag_names(*(!btrack.data))
 if (n_elements(tags) ne 15) then return,-1
 btags = ['COUNT','LON','LAT','RMS','NOISE','PAR','GUESSPAR','GUESSLON','GUESSLAT'$
        ,'BACK','REDO','REDO_FAIL','SKIP','LASTLON','LASTLAT']
@@ -49,7 +49,7 @@ if ((where(comp ne 1))(0) ne -1) then return,-1
 flag = 1   ; do it unless proven wrong
 
 ; FROM **ANY** PREVIOUS POSITION
-prev = where(!btrack.data.lon eq lon and !btrack.data.lat eq lat, nprev)
+prev = where((*(!btrack.data)).lon eq lon and (*(!btrack.data)).lat eq lat, nprev)
 
 ;prev = where(btrack.lon eq lon and btrack.lat eq lat $
 ;             and btrack.guesslon eq guesslon and btrack.guesslat eq guesslat, nprev)
@@ -70,7 +70,7 @@ if (nprev gt 0) then begin
 
   ; Looping through the previous ones
   for i=0,nprev-1 do begin
-    guesspar2 = !btrack.data[prev[i]].guesspar
+    guesspar2 = (*(!btrack.data))[prev[i]].guesspar
     gd2 = where(guesspar2 ne 999999.,ngd2)
    
     ; some gaussians found

@@ -43,7 +43,7 @@ if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) then begin
 endif
 
 ; Making sure it's the right structure
-tags = tag_names(!gstruc.data)
+tags = tag_names(*(!gstruc.data))
 if (n_elements(tags) ne 6) then return
 comp = (tags eq ['LON','LAT','RMS','NOISE','PAR','SIGPAR'])
 if ((where(comp ne 1))(0) ne -1) then return
