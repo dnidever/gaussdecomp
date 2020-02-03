@@ -35,7 +35,7 @@ if ntstr+!gstruc.count gt !gstruc.ndata then begin
   print,'Adding more elements to GSTRUC'
   ;; Old structures/arrays
   data = *(!gstruc.data)
-  ndata = *(!gstruc.ndata)
+  ndata = !gstruc.ndata
   count = !gstruc.count
   revindex = *(!gstruc.revindex)
   lonstart = *(!gstruc.lonstart)
