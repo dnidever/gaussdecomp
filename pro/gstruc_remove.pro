@@ -101,7 +101,7 @@ endif else begin
   index_converter[indtokeep] = l64indgen(!gstruc.count-nind)
   ;; only convert the ones that were moved
   moved_old_ngauss_values = ngauss[pind:pind+npabove-1]
-  ngauss[pind:pind+npabove-1] = index_convert[moved_old_ngauss_values]
+  ngauss[pind:pind+npabove-1] = index_converter[moved_old_ngauss_values]
   !gstruc.ngauss = ptr_new(ngauss)
   undefine,ngauss,temp_ngauss
 endelse
@@ -136,7 +136,7 @@ endif else begin
   index_converter[indtokeep] = l64indgen(!gstruc.pcount-1)
   ;; only convert the ones that were moved
   moved_old_revindex_values = revindex[rem0:rem0+nabove-1]
-  revindex[rem0:rem0+nabove-1] = index_convert[moved_old_revindex_values]
+  revindex[rem0:rem0+nabove-1] = index_converter[moved_old_revindex_values]
   !gstruc.revindex = ptr_new(revindex)
   undefine,revindex
 endelse
