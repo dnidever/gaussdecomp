@@ -95,10 +95,10 @@ endif else begin
   ;; Renumber NGAUSS
   ;;  convert the old index to the new index
   ;;  newindex = converter[oldindex]
-  indtokeep = l64indgen(!gstruc.count)
-  REMOVE,ind,indtokeep
-  index_converter = lon64arr(!gstruc.count)-1
-  index_converter[indtokeep] = l64indgen(!gstruc.count-nind)
+  indtokeep = l64indgen(!gstruc.pcount)
+  REMOVE,pind,indtokeep
+  index_converter = lon64arr(!gstruc.pcount)-1
+  index_converter[indtokeep] = l64indgen(!gstruc.pcount-1)
   ;; only convert the ones that were moved
   moved_old_ngauss_values = ngauss[pind:pind+npabove-1]
   ngauss[pind:pind+npabove-1] = index_converter[moved_old_ngauss_values]
@@ -130,10 +130,10 @@ endif else begin
   ;; Renumber REVINDEX
   ;;  convert the old index to the new index
   ;;  newindex = convert[oldindex]
-  indtokeep = l64indgen(!gstruc.pcount)
-  REMOVE,pind,indtokeep
-  index_converter = lon64arr(!gstruc.pcount)-1
-  index_converter[indtokeep] = l64indgen(!gstruc.pcount-1)
+  indtokeep = l64indgen(!gstruc.count)
+  REMOVE,ind,indtokeep
+  index_converter = lon64arr(!gstruc.count)-1
+  index_converter[indtokeep] = l64indgen(!gstruc.count-nind)
   ;; only convert the ones that were moved
   moved_old_revindex_values = revindex[rem0:rem0+nabove-1]
   revindex[rem0:rem0+nabove-1] = index_converter[moved_old_revindex_values]
