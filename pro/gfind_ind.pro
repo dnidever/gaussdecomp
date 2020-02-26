@@ -1,4 +1,4 @@
-function gfind,lon,lat,pind=pind,rms=rms,noise=noise,$
+function gfind_ind,lon,lat,ind=ind,rms=rms,noise=noise,$
          par=par,lonr=lonr,latr=latr
 
 
@@ -16,7 +16,7 @@ function gfind,lon,lat,pind=pind,rms=rms,noise=noise,$
 ;             1 - the position exists in the structure
 ;             0 - the position does NOT exist in the structure
 ;            -1 - any problems
-;   pind     Index of position in !gstruc.
+;   ind     Index of gaussians in gstruc with the desired position
 ;   rms     RMS of gaussian fit at the desired position
 ;   noise   Noise level at desired position
 ;   par     Parameters of gaussians in gstruc with the desired position
@@ -26,7 +26,7 @@ function gfind,lon,lat,pind=pind,rms=rms,noise=noise,$
 ;  rms = -1
 ;  noise = -1
 ;  par = -1
-;  pind = -1
+;  ind = -1
 ;
 ; Created by David Nidever April 2005
 
@@ -35,14 +35,14 @@ flag = -1
 rms = -1
 noise = -1
 par = -1
-pind = -1
+ind = -1
 
 nlon = n_elements(lon)
 nlat = n_elements(lat)
 
 ; Bad Input Values
 if (n_params() eq 0) or (nlon eq 0) or (nlat eq 0) then begin
-  print,'Syntax - f = gfind(lon,lat,pind=pind,rms=rms,noise=noise,'
+  print,'Syntax - f = gfind(lon,lat,ind=ind,rms=rms,noise=noise,'
   print,'                   par=par,lonr=lonr,latr=latr)'
   return,-1
 endif
@@ -74,7 +74,7 @@ if (lon lt lon0) or (lon gt lon1) or (lat lt lat0) or (lat gt lat1) then begin
   rms = -1
   noise = -1
   par = -1
-  pind = -1
+  ind = -1
   return,flag
 endif
 
@@ -84,7 +84,7 @@ if gstruc_exists eq 0 then begin
   rms = -1
   noise = -1
   par = -1
-  pind = -1
+  ind = -1
   flag = 0
   return,flag
 endif
@@ -94,11 +94,18 @@ t0 = systime(1)
 ;; LONSTART/LATSTART has a value for each position, faster searching
 ;;  use NGAUSS and INDSTART to get the indices into DATA
 pind = where(*(!gstruc.lonstart) eq lon and *(!gstruc.latstart) eq lat,npind)
+if npind gt 0 then begin
+  ind = l64indgen((*(!gstruc.ngauss))[pind[0]])+(*(!gstruc.indstart))[pind[0]]
+  nind = n_elements(ind)
+endif else begin
+  ind = -1
+  nind = 0
+endelse
+
 print,'find ',systime(1)-t0
 
 ; Found something, getting the values
-if npind gt 0 then begin
-  ind = l64indgen((*(!gstruc.ngauss))[pind[0]])+(*(!gstruc.indstart))[pind[0]]
+if nind gt 0 then begin
   rms = first_el((*(!gstruc.data))[ind].rms)
   noise = first_el((*(!gstruc.data))[ind].noise)
   par = ((*(!gstruc.data))[ind].par)(*)

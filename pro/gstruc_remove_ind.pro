@@ -1,4 +1,4 @@
-pro gstruc_remove,pind
+pro gstruc_remove_ind,ind
 
 ;; This "removes" indices from gstruc by shifting everything over
 ;;  this assumes that the IND indices is contiguous (i.e. no gaps)
@@ -26,9 +26,8 @@ pro gstruc_remove,pind
 ;; indstart: the index in DATA where the gaussians for this position start
 ;; pcount: the number of spatial positions
 
-
-;; Get the indices into DATA
-ind = l64indgen( (*!gstruc.ngauss)[pind] ) + (*!gstruc.indstart)[pind]
+;; IT MIGHT HAVE BEEN EASIER TO INPUT THE POSITION (PCOUNT VALUE) TO REMOVE
+;; RATHER THAN THE INDEX OF THE GAUSSIANS!!
 
 
 nind = n_elements(ind)

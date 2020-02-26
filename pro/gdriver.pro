@@ -271,11 +271,11 @@ WHILE (endflag eq 0) do begin
     gincrement,lon,lat,lon4,lat4,lonsgn=lonsgn,latsgn=-latsgn,lonr=lonr,latr=latr,/p2
 
     ; have they been visited before?
-    p0 = gfind(lon,lat,ind=ind0,rms=rms0,noise=noise0,par=par0,lonr=lonr,latr=latr)
-    p1 = gfind(lon1,lat1,ind=ind1,rms=rms1,noise=noise1,par=par1,lonr=lonr,latr=latr)
-    p2 = gfind(lon2,lat2,ind=ind2,rms=rms2,noise=noise2,par=par2,lonr=lonr,latr=latr)
-    p3 = gfind(lon3,lat3,ind=ind3,rms=rms3,noise=noise3,par=par3,lonr=lonr,latr=latr)
-    p4 = gfind(lon4,lat4,ind=ind4,rms=rms4,noise=noise4,par=par4,lonr=lonr,latr=latr)
+    p0 = gfind(lon,lat,rms=rms0,noise=noise0,par=par0,lonr=lonr,latr=latr)
+    p1 = gfind(lon1,lat1,rms=rms1,noise=noise1,par=par1,lonr=lonr,latr=latr)
+    p2 = gfind(lon2,lat2,rms=rms2,noise=noise2,par=par2,lonr=lonr,latr=latr)
+    p3 = gfind(lon3,lat3,rms=rms3,noise=noise3,par=par3,lonr=lonr,latr=latr)
+    p4 = gfind(lon4,lat4,rms=rms4,noise=noise4,par=par4,lonr=lonr,latr=latr)
 
     ; PRINTING OUT SOME RELEVANT INFORMATION HERE
     ; comparing them
@@ -337,8 +337,8 @@ WHILE (endflag eq 0) do begin
       lastlat = (*(!btrack.data))[nbtrack-1].lat
 
       ; p0 is the redo position, p5 is the pre-redo position
-      p0 = gfind(lastlon,lastlat,ind=ind0,rms=rms0,noise=noise0,par=par0,lonr=lonr,latr=latr)
-      p5 = gfind(newlon,newlat,ind=ind5,rms=rms5,noise=noise5,par=par5,lonr=lonr,latr=latr)
+      p0 = gfind(lastlon,lastlat,rms=rms0,noise=noise0,par=par0,lonr=lonr,latr=latr)
+      p5 = gfind(newlon,newlat,rms=rms5,noise=noise5,par=par5,lonr=lonr,latr=latr)
 
       b = gbetter(par0,rms0,noise0,par5,rms5,noise5)
       redo = gredo(newlon,newlat,lastlon,lastlat,par0)
@@ -966,7 +966,7 @@ WHILE (endflag eq 0) do begin
     ;; ADDING SOLUTION TO GSTRUC
     If count eq 0 then gstruc_add,tstr
     If count gt 0 then begin
-      old = gfind(lon,lat,ind=ind1,rms=rms1,par=par1,noise=noise1,lonr=lonr,latr=latr)
+      old = gfind(lon,lat,pind=pind1,rms=rms1,par=par1,noise=noise1,lonr=lonr,latr=latr)
 
       ; This is a re-decomposition
       if (old eq 1) and (redo eq 1) then begin
@@ -978,7 +978,7 @@ WHILE (endflag eq 0) do begin
 
          ; This one's better
          if (b eq 0) then begin
-           gstruc_remove,ind1  ; removing the old
+           gstruc_remove,pind1  ; removing the old
            gstruc_add,tstr  ; putting in the new
            ;remove,ind1,gstruc      ; removing the old
 t1 = systime(1)
