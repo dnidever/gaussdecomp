@@ -1,4 +1,4 @@
-pro gstruc_remove,pind
+pro gstruc_remove,pindex
 
 ;; This "removes" indices from gstruc by shifting everything over
 ;;  this assumes that the IND indices is contiguous (i.e. no gaps)
@@ -26,6 +26,7 @@ pro gstruc_remove,pind
 ;; indstart: the index in DATA where the gaussians for this position start
 ;; pcount: the number of spatial positions
 
+pind = first_el(pindex)  ;; in case it's a one-element array
 
 ;; Get the indices into DATA
 ind = l64indgen( (*!gstruc.ngauss)[pind] ) + (*!gstruc.indstart)[pind]
@@ -34,8 +35,6 @@ ind = l64indgen( (*!gstruc.ngauss)[pind] ) + (*!gstruc.indstart)[pind]
 nind = n_elements(ind)
 rem0 = min(ind)
 rem1 = max(ind)
-
-stop
 
 ndtags = n_tags(*(!gstruc.data))
 
@@ -68,7 +67,6 @@ endelse
 ;; UPDATE LONSTART/LATSTART/NGAUSS arrays
 ;; lonstart, latstart, indstart, ngauss, pcount
 ;; Use REVINDEX
-pind = (*(!gstruc.revindex))[ind[0]]
 ;; At the end, nothing to shift, just zero-out
 if pind eq !gstruc.pcount-1 then begin
   ;; Zero out the remaining elements
