@@ -31,7 +31,7 @@ class Spectrum:
         self.dv = np.median(np.diff(vel))
         self.blankvrange = blankvrange
         self.n = len(flux)
-        self._noise = None  #utils.computenoise(self.flux)
+        self._noise = None
         self._gpars = gpars
         self._model = None
 

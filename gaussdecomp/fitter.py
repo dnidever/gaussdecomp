@@ -6,8 +6,8 @@ import numpy as np
 from . import utils
 from dlnpyutils import utils as dln
 
-def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,noprint=False,
-                color=False,vmax=None,vmin=None,inpar=None,inv=None,inspec=None,debug=False):
+def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
+                color=False,vmax=None,vmin=None,debug=False):
                 
     """
     This program tries to do gaussian analysis 
@@ -15,30 +15,33 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
      
     Parameters
     ----------
-       l         Galactic longitude 
-       b         Galactic latitude 
-       inpar     Initial guess of parameters 
-       inv       Use input velocity array 
-       inspec    Use input spectrum array 
-       /noplot   Don't plot anything 
-       /noprint  Don't print anything 
-       /debug    Diagnostic printing and plotting 
-       /color    Use color 
-       vmin      The minimum velocity to use 
-       vmax      The maximum velocity to use 
+    spectrum : Spectrum object
+       The spectrum to fit.
+    initpar : numpy array, optional
+       Initial guess of parameters 
+    vmin : float, optional
+       The minimum velocity to use.
+    vmax : float, optional
+       The maximum velocity to use 
+    noplot : boolean, optional
+       Don't plot anything 
+    noprint : boolean, optional
+       Don't print anything 
+    debug : boolean, optional
+       Diagnostic printing and plotting.
      
     Returns
     -------
-       par0      Final parameters 
-       v         Array of velocities 
-       spec      Spectrum 
-       resid     The residuals 
-       rms       The rms of the residuals 
+    par0      Final parameters 
+    v         Array of velocities 
+    spec      Spectrum 
+    resid     The residuals 
+    rms       The rms of the residuals 
      
     Example
     -------
 
-    par,v,spec,resid,rms = gaussfitter(1,1)
+    par,v,spec,resid,rms = gaussfitter(spectrum)
      
     Written by D. Nidever, April 2005 
     Translated to python by D. Nidever, March 20222
@@ -47,24 +50,11 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
     # Start time 
     gt0 = time.time() 
      
-    # Default position 
-    if len(l) == 0 or len(b) == 0: 
-        l = 295. 
-        b = -60. 
-     
-    # Original printing
-    if noprint==False:
-        print('Fitting Gaussians to the HI spectrum at (',str(l),',',str(b),')')
-     
-    # Getting the HI spectrum 
-    if len(inv) > 0 and len(inspec) > 0: 
-        v = inv 
-        spec = inspec 
-    else: 
-        v,spec = rdhispec(l,b)
-     
-    # Estimating the noise 
-    noise = hinoise(v,spec)
+    # Getting the HI spectrum
+    v = np.copy(spectrum.vel)
+    spec = np.copy(spectrum.flux)  
+    # Estimating the noise
+    noise = spectrum.noise
     noise_orig = noise 
      
     # Velocity range 
@@ -74,18 +64,13 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
         vmax = np.max(v)
     gd, = np.where((v >= vmin) & (v <= vmax))
     ngd = len(gd)
-    old_v = np.copy(v)
-    old_spec = np.copy(spec)
     spec = spec[gd]
     v = v[gd] 
-    dv = v[1]-v[0] 
-    vmin = np.min(v)
-    vmax = np.max(v)
-    dum = dln.closest(0,v,ind=vindcen) 
+    dv = v[1]-v[0]
+    dum,vindcen = dln.closest(v,0)
      
     # Initalizing Some Parameters
-    if par0 is not None:
-        par0 = 0 
+    par0 = None
     npts = len(v) 
     rms = 999999. 
     rms0 = 999999. 
@@ -95,17 +80,17 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
     endflag = 0 
     addt0 = time.time() 
  
-    # TRYING THE FIRST GUESS PARAMETERS 
-    if (len(inpar) > 1): 
+    # TRYING THE FIRST GUESS PARAMETERS
+    finpar = None
+    if initpar is not None:
      
         print('Using First Guess Parameters')
-        orig_inpar = inpar 
-     
+        inpar = np.copy(initpar)     
         inpar = utils.gremove(inpar,v,y) # removing bad ones 
         inpar = utils.gremdup(inpar,v)   # removing the duplicates 
      
         # Letting everything float 
-        finpar,sigpar,rms,chisq,niter,residuals,status,weights = utils.gfit(v,y,inpar,noise=noise,rt=rt1)
+        finpar,sigpar,rms,chisq,residuals,noise,success,rt1 = utils.gfit(v,y,inpar,noise=noise)
      
         finpar = utils.gremove(finpar,v,y)  # removing bad ones 
         finpar = utils.gremdup(finpar,v)    # removing the duplicates 
@@ -113,21 +98,22 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
         
     # ADDING GAUSSIANS 
  
-    # One gaussian added per loop 
+    # One gaussian added per loop
+    flag = 0
     while (flag != 1): 
 
         if noprint is False:
             print('count = ',str(count))
      
         # Using the initial guess 
-        if len(finpar) > 1 : 
+        if finpar is not None:
             par0 = finpar
         if par0 is not None:
             npar0 = len(par0)
      
         # Getting the Residuals 
         if par0 is not None:
-            th = utils.gfunc(v,par0) 
+            th = utils.gfunc(v,*par0) 
             if th[0] != 999999.: 
                 resid = y-th 
             else: 
@@ -136,21 +122,21 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
             resid = y 
          
         # Smoothing the data 
-        smresid4 = dln.savgolsm(resid, [4,4,2]) 
-        smresid16 = dln.savgolsm(resid, [16,16,2]) 
+        smresid4 = dln.savgol(resid, 9,2) 
+        smresid16 = dln.savgol(resid, 33,2) 
         if (npts > 61): 
-            smresid30 = dln.savgolsm(resid, [30,30,2]) 
+            smresid30 = dln.savgol(resid, 61,2) 
         else: 
             smresid30 = np.zeros(npts,float)
         if (npts > 101): 
-            smresid50 = dln.savgolsm(resid, [50,50,2]) 
+            smresid50 = dln.savgol(resid, 101,2) 
         else: 
             smresid50 = np.zeros(npts,float)
         if (npts > 201): 
-            smresid100 = dln.savgolsm(resid, [100,100,2]) 
+            smresid100 = dln.savgol(resid, 201,2) 
         else: 
             smresid100 = np.zeros(npts,float)
-        maxy = dln.max(resid) 
+        maxy = np.max(resid) 
 
          
         # Setting up some arrays 
@@ -192,17 +178,17 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
                 # only one gaussian, plus a line 
                 for i in range(ngd): 
                     maxi = maxarr[i]
-                    # Getting guess and fitting it 
-                    par2,gind = utils.gest(v,smresid,maxi,par2)
-                    # Only do it if there is a good range 
-                    if gind[0] != -1: 
-                        par2s = [par2,0.01,0.01] 
-                        fpar2s,sigpar2,rms2,chisq2,niter,residuals,status,weights = utils.gfit(v[gind],smresid[gind],par2s,noise=noise,rt=rt2,func='gdev1')
+                    # Getting guess and fitting it
+                    par2,gind = utils.gest(v,smresid,maxi)
+                    # Only do it if there is a good range
+                    if len(gind)>0:
+                        par2s = np.hstack((par2,np.array([0.01,0.01])))
+                        fpar2s,sigpar2,rms2,chisq2,residuals,noise2,success2,rt2 = utils.gfit(v[gind],smresid[gind],par2s,noise=noise)
                         fpar2 = fpar2s[0:3]
-                        rms = np.std(resid-gfunc(v,fpar2))
+                        rms = np.std(resid-utils.gfunc(v,*fpar2))
                     else: 
-                        rms = 999999. 
-                        fpar2 = par2*0.+999999. 
+                        rms = 999999.
+                        fpars = np.zeros(3,float)+999999.
              
                     # Adding to the rms and par arrays 
                     rmsarr[gcount] = rms 
@@ -232,7 +218,7 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
  
         # Removing the duplicates 
         pararr = utils.gremdup(pararr,v)
- 
+        
         # No good ones 
         if len(pararr) < 2: 
             flag = 1 
@@ -240,16 +226,16 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
  
  
         # Setting up some arrays 
-        n = len(pararr)/3 
+        n = len(pararr)//3 
         rmsarr2 = np.zeros(n,float)
         if par0 is not None:
             pararr2 = np.zeros((n,len(par0)+3),float)
         else:
             pararr2 = np.zeros((n,3),float)
-            sigpararr2 = np.copy(pararr2) 
+        sigpararr2 = np.copy(pararr2) 
  
         if noprint is False:
-            print(str(n,2),' gaussian candidates')
+            print(str(n)+' gaussian candidates')
  
  
         # Looping through the candidates that are left 
@@ -262,7 +248,7 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
                 par = np.copy(ipar)
  
             # Letting everything float 
-            fpar,sigpar,rms,chisq,niter,residuals,status,weights = utils.gfit(v,y,par,noise=noise,rt=rt5)
+            fpar,sigpar,rms,chisq,residuals,noise5,success5,rt5 = utils.gfit(v,y,par,noise=noise)
             npar = len(fpar)
             rmsarr2[i] = rms 
             pararr2[i,:] = fpar 
@@ -271,19 +257,17 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
             # Giagnostic plotting and printing
             if debug:
                 utils.gplot(v,y,fpar)
-                utils.printgpar(fpar,sigpar,len(fpar)/3,rms,noise,chisq,niter,status)
+                utils.printgpar(fpar,sigpar,len(fpar)//3,rms,noise,chisq,success)
                 sleep(1.5)
  
         # Adding the gaussian with the lowest rms 
-        gdi = where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))[0][0]
-        ngdi = len(gdi)
-        if ngdi > 0: 
-            par0 = pararr2[gdi,:]
-            npar0 = len(par0) 
-            sigpar = sigpararr2[gdi,:]
-            rms = rmsarr2[gdi]
-            sigpar00 = sigpar 
-            rms00 = rms 
+        gdi = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))[0][0]
+        par0 = pararr2[gdi,:]
+        npar0 = len(par0) 
+        sigpar = sigpararr2[gdi,:]
+        rms = rmsarr2[gdi]
+        sigpar00 = sigpar 
+        rms00 = rms 
  
         # Plot what we've got so far 
         #if not keyword_set(noplot) then gplot,v,spec,par0 
@@ -291,7 +275,7 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
         # Printing the parameters 
         #ngauss = n_elements(par0)/3
         if noprint is False and rms != 999999: 
-            utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq,niter)
+            utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq)
  
         # Ending Criteria 
         drms = (rms0-rms)/rms0 
@@ -320,37 +304,39 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
         utils.gplot(v,spec,par0)
  
     # Printing the parameters 
-    ngauss = len(par0)/3
+    ngauss = len(par0)//3
     if noprint is False:
         utils.printgpar(par0,sigpar00,ngauss,rms,noise)
  
     # REMOVING GAUSSIANS 
- 
+    
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
     
     # Removing the duplicates 
     par0 = utils.gremdup(par0,v)
  
-    # None left - End 
-    if par0(0) == -1 : 
-        return None
+    # None left - End
+    if par0 is None:
+        return np.array([]),np.array([]),999999.,999999.
  
     # Sorting the gaussians by area 
     orig_par0 = par0 
-    ngauss = len(par0)/3 
-    par0 = np.argsort(par0) 
- 
+    ngauss = len(par0)//3 
+    par0 = utils.gsort(par0) 
+
+    
     # See if removing the smallest (in area) gaussian changes much 
- 
+    print('Attempting to remove small Gaussians')
+    
     count = 0 
-    ngauss = len(par0)/3 
+    ngauss = len(par0)//3 
  
     orig_par0 = par0 
-    nrefit = np.ceil(ngauss/2) 
+    nrefit = int(np.ceil(ngauss/2))
  
     weights = np.ones(npts,float)
-    rms0 = np.sqrt(np.sum(weights*(spec-gfunc(v,par0))**2.)/(npts-1)) 
+    rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2.)/(npts-1)) 
  
     # Looping through the smallest 1/2 
     for i in range(nrefit): 
@@ -361,32 +347,30 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
         tpar = np.delete(tpar,np.arange(3)+ig*3)
  
         # Finding the best fit 
-        fpar,sigpar,rms,chisq,iter,residuals,status,weights = utils.gfit(v,y,tpar,weights=weights,noise=noise,rt=rt5)
+        fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
  
         drms = rms-rms0 
         # remove the gaussian 
         if (drms/rms0 < 0.02): 
             par0 = fpar 
-            rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,par0))**2)/(npts-1))
+            rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2)/(npts-1))
             # saving the results of the fit 
             #  without this gaussian 
             sigpar00 = sigpar 
             rms00 = rms 
             chisq00 = chisq 
-            iter00 = iter 
-            status00 = status 
- 
+            success00 = success
  
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
  
     # Run it one last time for the final values 
-    fpar,sigpar,rms,chisq,niter,residuals,status = utils.gfit(v,y,par0,weights=weights,noise=noise,rt=rt5)
+    fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
-    ngauss = len(par0)/3 
+    ngauss = len(par0)//3 
  
     # Final Results 
-    ngauss = len(par0)/3
+    ngauss = len(par0)//3
     if noplot is False:
         utils.gplot(v,spec,par0)
     if noprint is False:
@@ -396,14 +380,8 @@ def gaussfitter(l,b,par0,sigpar,rms,noise,v,spec,resid,noplot=True,ngauss=None,n
     if noprint is False:
         print('Total time = ',str(time.time()-gt0))
  
-    #BOMB: 
- 
     # No gaussians found 
-    if par0[0] == -1: 
-        sigpar = par0*0.-1 
-        rms = np.std(spec) 
-              
-    spec = old_spec 
-    v = old_v 
+    if par0 is None:
+        return np.array([]),np.array([]),999999.,999999.        
  
-    return par0
+    return par0,sigpar,resid,rms

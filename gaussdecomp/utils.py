@@ -10,10 +10,14 @@ __authors__ = 'David Nidever <dnidever@noao.edu>'
 __version__ = '20200122'  # yyyymmdd                                                                                                                           
 import os
 import numpy as np
+import time
 import warnings
+from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from scipy.interpolate import interp1d
 from dlnpyutils import utils as dln
+import matplotlib
+import matplotlib.pyplot as plt
 
 # Ignore these warnings, it's a bug
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
@@ -90,7 +94,7 @@ def parcheck(x,y,par):
      
     Created by David Nidever April 2005 
     """
- 
+    
     npts = len(x) 
     ny = len(y) 
     npar =  len(par) 
@@ -115,7 +119,7 @@ def parcheck(x,y,par):
     ymax = np.max(y) 
      
     # Checking the parameters 
-    for i in range(ngauss): 
+    for i in range(ngauss):
         # Checking height 
         if par[3*i] <= 0.01: 
             flag = 1 
@@ -153,7 +157,7 @@ def gremove(par,x,y):
      
     Created by David Nidever April 2005 
     """
-
+    
     nx = len(x) 
     ny = len(y) 
     npar = len(par) 
@@ -200,7 +204,7 @@ def gremdup(pararr,v):
      
     Created by David Nidever April 2005 
     """
- 
+    
     npar = len(pararr) 
     nv = len(v) 
      
@@ -209,8 +213,8 @@ def gremdup(pararr,v):
     n = len(pararr)/3 
     vmin = min(v) 
     vmax = max(v) 
-    dv = v(1)-v(0) 
-    dum = closest(0,v,ind=vindcen) 
+    dv = v[1]-v[0] 
+    dum,vindcen = dln.closest(v,0)
      
     # Removing "duplicates" 
     endflag = 0 
@@ -219,11 +223,17 @@ def gremdup(pararr,v):
     # Checking all N(N-1)/2 possible combinations 
     # First loop 
     while (endflag==0):
-        n = len(pararr)//3 
-        if i >= n-2: 
+        n = len(pararr)//3
+        # BOMB
+        if i >= n-2:
+            n = len(pararr)/3 
+            if i >= n-2: 
+                endflag = 1
+                break
+            i += 1
             continue
         ipar = pararr[3*i:3*i+3]
-        ig = gfunc(v,ipar) 
+        ig = gfunc(v,*ipar) 
      
         endflag2 = 0 
         j = i + 1 
@@ -231,33 +241,36 @@ def gremdup(pararr,v):
         # Second loop 
         while (endflag2 == 0): 
             jpar = pararr[3*j:3*j+3]
-            jg = gfunc(v,jpar) 
+            jg = gfunc(v,*jpar) 
      
             # Use the narrowest range possible
-            vlo = np.maximum(vmin,np.minimum(ipar[1]-ipar[2]*3,jpar[1]-jpar[2]*3)) * 0.5   # just to be safe
-            vhi = np.minimum(vmax,np.maximum(ipar[1]+ipar[2]*3, jpar[1]+jpar[2]*3)) * 0.5  # just to be safe
+            vlo = np.maximum(vmin,np.minimum(ipar[1]-ipar[2]*3,jpar[1]-jpar[2]*3)) + 0.5   # just to be safe
+            vhi = np.minimum(vmax,np.maximum(ipar[1]+ipar[2]*3, jpar[1]+jpar[2]*3)) - 0.5  # just to be safe
             vran = vhi-vlo
             if ~np.isfinite(vran/dv+1.):
                 raise ValueError('Velocity range problem')
-            ind = np.arange(int(np.round(vran/dv+1)))+vindcen+vlo/dv
+            ind = np.arange(int(np.round(vran/dv+1))).astype(int)+int(np.round(vindcen+vlo/dv))
      
-            # Calculating the similarity 
+            # Calculating the similarity
             sim = np.sum( (ig[ind]-jg[ind])**2 )*dv / ( garea(ipar,npow=2) + garea(jpar,npow=2) ) 
-     
+
             n = len(pararr)/3 
             if j == n-1: 
                 endflag2 = 1 
  
             # Similar gaussians, replace by single average 
-            if sim < 0.1: 
+            if sim < 0.1:
                 n = len(pararr)/3
                 torem = np.arange(3)+3*j
-                pararr = np.delete(pararr,torem)
+                if len(torem)<len(pararr):
+                    pararr = np.delete(pararr,torem)
+                else:
+                    return None
                 # don't increment
             else: 
                 # Increment to next 
                 j += 1 
- 
+                
         n = len(pararr)/3 
         if i >= n-2: 
             endflag = 1 
@@ -266,7 +279,7 @@ def gremdup(pararr,v):
 
     return pararr
 
-def gfunc(x,par,dp,noderiv=True):
+def gfunc(x,*par,noderiv=True):
     
     """
     This function makes gaussians 
@@ -294,9 +307,9 @@ def gfunc(x,par,dp,noderiv=True):
     npts = len(x) 
     ngauss = npar//3 
     th = 0. 
-     
+    
     # Looping through gaussians
-    if i in range(ngauss):
+    for i in range(ngauss):
         ipar = par[i*3:i*3+3]
         g = ipar[0]*np.exp(-0.5*((x-ipar[1])/ipar[2])**2.) 
         th += g
@@ -322,7 +335,7 @@ def gfunc(x,par,dp,noderiv=True):
             
     return th 
 
-def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,status=None):
+def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,success=None):
     """
     Printing the gaussian parameters 
      
@@ -334,7 +347,7 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,status=N
        noise    Noise level 
        chisq    Chi squared of gaussian fit 
        niter    Number of iterations 
-       status   Status of fitting procedure 
+       success  Was the fit successful.
      
     Return
     ------
@@ -344,7 +357,7 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,status=N
     """
      
     npar = len(par)
-    ngauss = len(par)/3
+    ngauss = len(par)//3
     if sigpar is None:
         sigpar = np.zeros(npar)
      
@@ -356,20 +369,20 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,status=N
         ipar = par[i*3:i*3+3]
         isigpar = sigpar[i*3:i*3+3]
         iarea = garea(ipar)
-        print(' %d  %6.2f (%4.2f) %6.2f (%4.2f) %6.2f (%4.2f) %6.2' % (i+1,ipar[0],isigpar[0],ipar[1],isigpar[1],ipar[2],isigpar[2],iarea))
-        print('----------------------------------------------------------')
-        if niter is not None:
-            print('N Iter = ',str(niter))
-        if chisq is not None:
-            print('ChiSq = %.3f ' % chisq)
-        if rms is not None:
-            print('RMS = %.3f' % rms)
-        if noise is not None:
-            print('Noise = %.3f' % noise)
-        if status is not None:
-            if status<0:
-                print('Status = '+str(status)+'   NOT SUCCESSFUL')
-        print('')
+        print(' %d  %6.2f (%4.2f) %6.2f (%4.2f) %6.2f (%4.2f) %6.2f' % (i+1,ipar[0],isigpar[0],ipar[1],isigpar[1],ipar[2],isigpar[2],iarea))
+    print('----------------------------------------------------------')
+    if niter is not None:
+        print('N Iter = ',str(niter))
+    if chisq is not None:
+        print('ChiSq = %.3f ' % chisq)
+    if rms is not None:
+        print('RMS = %.3f' % rms)
+    if noise is not None:
+        print('Noise = %.3f' % noise)
+    if success is not None:
+        if success==False:
+            print('Fitting was NOT SUCCESSFUL')
+    print('')
 
 def gpeak1(spec,top):     
     # Gets peaks 
@@ -381,14 +394,14 @@ def gpeak1(spec,top):
         gd, = np.where(spec[maxind] > top)
         ngd = len(gd)
         if ngd>0:
-            maxarr = maxarr[gd] 
+            maxind = maxind[gd] 
         else:
-            maxarr = np.array([])
+            maxind = np.array([])
      
-    return maxarr
+    return maxind
 
         
-def gest(spec,ind,par,nsig=3):
+def gest(v,spec,ind,nsig=3):
     """
     This program estimates the gaussian parameters 
     peaking at v0. 
@@ -396,15 +409,15 @@ def gest(spec,ind,par,nsig=3):
      
     Parameters
     ----------
-       v     Array of velocities 
-       spec  Array of spectrum 
-       ind   Index of the maximum to fit 
-       nsig  Number of sigmas for gind (nsig=3 by default) 
+    v     Array of velocities 
+    spec  Array of spectrum 
+    ind   Index of the maximum to fit 
+    nsig  Number of sigmas for gind (nsig=3 by default) 
      
     Returns
     -------
-       par   Gaussian parameters of best fit to maximum 
-       gind  The indices of the gaussian out to 3 sigma 
+    par   Gaussian parameters of best fit to maximum 
+    gind  The indices of the gaussian out to 3 sigma 
      
     If there is some kind of problem this program returns: 
       par = [999999., 999999., 999999.] 
@@ -421,7 +434,7 @@ def gest(spec,ind,par,nsig=3):
     nspec = len(spec) 
      
     # Bad Input Values 
-    if (npar == 0) or (npts == 0) or (npts != nspec) or (len(ind) == 0):
+    if (npar == 0) or (npts == 0) or (npts != nspec):
         raise ValueError('Bad inputs')
      
     if (ind < 0) or (ind > npts-1): 
@@ -431,7 +444,7 @@ def gest(spec,ind,par,nsig=3):
      
     # Using derivatives to get the parameters 
     dv = v[1]-v[0]
-    dsdv = np.diff(spec)/dv
+    dsdv = np.gradient(spec)/dv
     vv0 = v-cen 
     r10 = dsdv/spec 
      
@@ -450,7 +463,7 @@ def gest(spec,ind,par,nsig=3):
     # Finding the slope for r = (d(spec)/dv)/spec 
     # dsdv/spec = -vv0/sig^2. 
     m = (r10[ind+1]-r10[ind])/dv 
-    if (-1./m < 0.): 
+    if (-1./m < 0.):
         return np.array([]),np.array([])
     sig0 = np.sqrt(-1./m) 
     par = np.array([spec[ind],cen,sig0])
@@ -474,8 +487,8 @@ def gest(spec,ind,par,nsig=3):
         hi = np.ceil(np.minimum(ind+5,npts-1))
         ngind = hi-lo+1 
 
-    gind = np.arange(ngdind)+lo
-
+    gind = np.arange(ngind).astype(int)+int(lo)
+    
     return par,gind
                      
 
@@ -520,7 +533,7 @@ def setlimits(x,y,par):
 
     # Initialize the bounds
     bounds = (np.zeros(npar,float)-np.inf,
-              np.zeros(npar,float)+np.fin)
+              np.zeros(npar,float)+np.inf)
     
     # Setting limits 
     for i in range(ngauss): 
@@ -548,21 +561,22 @@ def gfit(x,y,par,bounds=None,noise=None):
      
     Parameters
     ----------
-       x         Array of X values 
-       y         Array of Y values 
-       par       Initial guess parameters 
-       bounds    boundaries for the parameters
-       noise     Noise level 
+    x         Array of X values 
+    y         Array of Y values 
+    par       Initial guess parameters 
+    bounds    boundaries for the parameters
+    noise     Noise level 
      
     Returns
     ------
-       fpar      Final parameters 
-       perror    Errors of final parameters 
-       rms       RMS of final fit 
-       chisq     Chi squared of final fit 
-       resid     Residuals of spectrum - final fit 
-       noise     Noise level 
-       rtime     Run time in seconds 
+    fpar      Final parameters 
+    perror    Errors of final parameters 
+    rms       RMS of final fit 
+    chisq     Chi squared of final fit 
+    resid     Residuals of spectrum - final fit 
+    noise     Noise level 
+    success   Was the fit successful.
+    rtime     Run time in seconds 
 
      
     If there are any problems this program returns: 
@@ -580,10 +594,7 @@ def gfit(x,y,par,bounds=None,noise=None):
     t0 = time.time() 
     npts = len(x) 
     npar = len(par)
-     
-    # function to use 
-    if not keyword_set(func) : 
-        func='gdev' 
+    success = False  # bad until proven okay
      
     # Getting the noise level
     if noise is None:
@@ -591,8 +602,8 @@ def gfit(x,y,par,bounds=None,noise=None):
      
     # Setting the limits
     if bounds is None:
-        bounds = utils.setlimits(x,y,par)
-    badflag = utils.parcheck(x,y,par)
+        bounds = setlimits(x,y,par)
+    badflag = parcheck(x,y,par)
                      
     # Initial parameters are okay 
     if badflag == 0:
@@ -601,20 +612,23 @@ def gfit(x,y,par,bounds=None,noise=None):
         initpar = np.copy(par)
         try:
             fpar,cov = curve_fit(gfunc, x, y, p0=initpar, sigma=sigma, bounds=bounds)
+            # total resid 
+            result = gfunc(x,*fpar) 
+            resid = y-result             
             perror = np.sqrt(np.diag(cov))
             dof = npts-npar
+            chisq = np.sum(resid**2/sigma**2)
             sigpar = perror * np.sqrt(chisq/dof) 
-            # total resid 
-            result = np.gfunc(x,fpar) 
-            resid = y-result 
-            rms = np.sqrt(np.sum((resid/sigma)**2.)/(npts-1))  # using Haud's method, pg. 92, eg.6 
+            rms = np.sqrt(np.sum((resid/sigma)**2.)/(npts-1))  # using Haud's method, pg. 92, eg.6
+            success = True
         except:
-            print('Problems in curve_fit')             
+            print('Problems in curve_fit')
             fpar = par 
             perror = par*0.+999999. 
             rms = 999999. 
             chisq = 999999. 
-            resid = np.copy(y)*0. 
+            resid = np.copy(y)*0.
+            success = False
         # Problems with the initial parameters 
     else: 
         fpar = par 
@@ -622,13 +636,58 @@ def gfit(x,y,par,bounds=None,noise=None):
         rms = 999999. 
         chisq = 999999. 
         resid = y*0. 
-     
+        success = False
+        
     rtime = time.time()-t0 
 
-    return fpar,perror,rms,chisq,resid,noise,rtime
+    return fpar,perror,rms,chisq,resid,noise,success,rtime
+
+def gsort(par,dec=False,cen=False):
+    """
+    This program sorts an array of gaussian parameters in 
+    order of decreasing area (largest first) 
+     
+    INPUT 
+    par        Array of gaussian parameters 
+    /dec       Order in increasing order (smaller first) 
+    /cen       Order by center 
+    si         Array of indices sorted by newpar = par(si) 
+     
+    OUTPUT 
+    newpar     Array of ordered gaussian parameters 
+     
+    Created by David Nidever May 2005 
+    """
+
+    npar = len(par) 
+     
+    # Not enough parameters 
+    if (npar < 3) : 
+        return par 
+     
+    ngauss = npar//3
+    if cen is False:
+        tsi = np.flip(np.argsort(garea(par)))
+        if dec:
+            tsi = np.argsort(garea(par)) 
+        si = np.zeros(npar,int)
+        for i in range(ngauss): 
+            si[i*3:i*3+3] = tsi[i]*3+np.array([0,1,2]).astype(int)
+        newpar = par[si]
+    else:
+        pararr = np.zeros((ngauss,3),float)
+        for i in range(ngauss): 
+            pararr[i,:] = par[i*3:i*3+3]
+        si = np.argsort(pararr[:,1])
+        if dec:
+            si = np.flip(si) 
+        pararr = pararr[si,:]
+        newpar = pararr.flatten()
+        
+    return newpar 
 
 
-def gplot(v,y,par,save=False,outfile=None,ylime=None,xlim=None,
+def gplot(v,y,par,outfile=None,ylim=None,xlim=None,
           tit=None,noresid=False,xtit=None,ytit=None,noannot=False):
     """
     Plots the gaussian fit.  You can plot just the gaussians 
@@ -639,19 +698,18 @@ def gplot(v,y,par,save=False,outfile=None,ylime=None,xlim=None,
        v        Array of velocities 
        y        Array of spectral points 
        par      Array of gaussian parameters 
-       /color   Plot in color 
-       /save    Save to postscript file 
-       file     Name of postscript file 
-       xrange   Range of x-values 
-       ylim   Range of y-values 
+       outfile  Name of output filename.
+       xlim     Range of x-values 
+       ylim     Range of y-values 
        tit      Plot title 
-       /noresid Don't overplot the residuals 
+       noresid  Don't overplot the residuals 
      
     Returns
     -------
        None 
      
     Created by David Nidever April 2005 
+    Translated to Python D. Nidever, March 2022
     """
 
     nv = len(v) 
@@ -673,40 +731,47 @@ def gplot(v,y,par,save=False,outfile=None,ylime=None,xlim=None,
      
     ngauss = len(par)//3
     if (npar > 0): 
-        result = gfunc(v,par) 
+        result = gfunc(v,*par) 
     else: 
         result = np.copy(y)*0.
-     
+    resid = y-result
+    rms = np.sqrt(np.mean(resid**2))
+
+        
     # Plotting
     if tit is None:
         tit = 'Gaussian Analysis of HI Spectrum'
     if xtit is None:
-        xtit = 'V_{LSR} (km s^{-1})'
+        xtit = '$V_{LSR}~(km s^{-1})$'
     if ytit is None:
-        ytit = 'T_B (K)' 
+        ytit = '$T_B~(K)$' 
      
     # Setting the ranges 
     if (np.std(y) != 0.):
         if ylim is not None:
             yr = ylim 
         else: 
-            yr = [np.min(np.hstack((y,result)))-3.0,np.max(np.hstack((y,result)))*1.1]
-                         
+            yr = [np.min(np.hstack((y,result)))-5*rms,np.max(np.hstack((y,result)))*1.1]    
     else: 
         if ylim is not None:
             yr = ylim 
         else:
-            yr = [np.min(np.hstack((y,result)))-0.1,np.max(np.hstack((y,result)))*1.1] 
+            yr = [np.min(np.hstack((y,result)))-5*rms,np.max(np.hstack((y,result)))*1.1] 
     if xlim is not None:
         xr = xlim 
     else: 
         xr = [np.min(v),np.max(v)] 
 
-    plt.plot(xr,[0,0])
+    if noresid:
+        fig,ax = plt.subplots(1,1,num=1,figsize=(10,10))
+    else:
+        fig,ax = plt.subplots(2,1,num=1,figsize=(10,10),gridspec_kw={'height_ratios': [3, 1]})
+        
+    ax[0].plot(xr,[0,0])
     if (ny > 0): 
-        plt.plot(v,y,thick=thick)
+        ax[0].plot(v,y,c='k',label='Observed HI')
     if (npar > 0): 
-        plt.plot(v,result+0.02,c='r',thick=thick)
+        ax[0].plot(v,result+0.02,c='r',label='Sum of Gaussians')
              
     # Looping through the gaussians 
     if ngauss > 1: 
@@ -714,28 +779,31 @@ def gplot(v,y,par,save=False,outfile=None,ylime=None,xlim=None,
             ipar = par[i*3:i*3+3] 
             d, = np.where((v >= (ipar[1]-3.5*ipar[2])) & (v <= (ipar[1]+3.5*ipar[2])))
             nd = len(d)
-            g = gfunc(v[d],ipar) 
-            plt.plot(v[d],g,linestyle=i/7,thick=thick)
-         
-    # Overplotting the residuals 
-    if (ny > 0) and (npar > 0) and (not keyword_set(noresid)): 
-        resid = y-result 
-        if np.std(y) != 0.: 
-            plt.plot(v,resid-2.5,thick=thick) 
-            plt.plot(v,v*0.-2.5,thick=thick)
-            plt.annotate('Residua.s',xy=[xr[0]+0.1*dln.valrange(xr),-1.5])
-         
-    # Annotations
+            g = gfunc(v[d],*ipar) 
+            ax[0].plot(v[d],g,linestyle='dashed')
+    ax[0].set_xlim(xr)
+    ax[0].set_ylim(yr)    
+    ax[0].set_xlabel(xtit)
+    ax[0].set_ylabel(ytit)    
+    ax[0].set_title(tit)
     if noannot is False:
-        plt.annotate('Observed HI',xy=[xr[0]+0.1*dln.valrange(xr),yr[0]+0.9*dln.valrange(yr)])
-        plt.annotate('Sum of Gaussians',xy=[xr[0]+0.1*dln.valrange(xr),yr[0]+0.86*dln.valrange(yr)])
-
+        ax[0].legend()
+            
+    # Overplotting the residuals 
+    if (ny > 0) and (npar > 0) and (noresid is False):
+        if np.std(y) != 0.: 
+            ax[1].plot(v,resid,c='k',label='Residuals') 
+            ax[1].plot(v,v*0.)
+            ax[1].set_xlim(xr)
+            yr2 = [np.median(resid)-5*rms,np.median(resid)+5*rms]
+            ax[1].set_ylim(yr2)
+            if noannot is False:
+                ax[1].legend()
+                ax[1].annotate('RMS = %.2f' % rms,xy=[xr[0]+0.02*dln.valrange(xr),yr2[1]-0.15*dln.valrange(yr2)],ha='left')
+            
+        ax[1].set_xlabel(xtit)
+        ax[1].set_ylabel('Residuals '+ytit)    
+            
     # Save the plot
-    if save:
-        plt.savefig(outfile)
-
-
-
-def gaussmodel(gpars,vel):
-    # compute the model spectrum with a bunch of Gaussians and the velocity array
-    pass
+    if outfile is not None:
+        plt.savefig(outfile,bbox_inches='tight')
