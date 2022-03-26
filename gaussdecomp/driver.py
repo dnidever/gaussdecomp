@@ -3,6 +3,561 @@
 import os
 import time
 import numpy as np
+from . import utils,fitter
+
+def gincrement(lon,lat,newlon,newlat,lonr=None,latr=None,
+               lonsgn=1,latsgn=1,nstep=1,p2=False):
+    """
+    This program increments the position 
+     
+    Parameters
+    ----------
+    lon      Longitude of current position 
+    lat      Latitude of current position 
+    lonsgn   Sign of longitude increment 
+    latsgn   Sign of latitude increment 
+    lonr     Two element array of longitude limits 
+    latr     Two element array of latitude limits 
+    nstep    Number of steps to increment 
+    p2      Increment in latitude rather than in longtide 
+     
+    Returns
+    -------
+    newlon   Longitude of new position 
+    newlat   Latitude of new position 
+     
+    When this program has problems it returns: 
+    newlon = 999999. 
+    newlat = 999999. 
+     
+    Created by David Nidever April 2005 
+    """
+ 
+    step = 1.0   # 0.5 
+     
+    # bad until proven okay 
+    newlon = 999999. 
+    newlat = 999999. 
+
+    if lonr is None:
+        lonr = [0.,2000.] 
+    if latr is None: 
+        latr = [0.,2000.] 
+     
+    # Longitude and latitude limits 
+    lon0 = float(lonr[0]) 
+    lon1 = float(lonr[1]) 
+    lat0 = float(latr[0]) 
+    lat1 = float(latr[1]) 
+     
+    # Are we in the box? 
+    if (lon < lon0) or (lon > lon1) or (lat < lat0) or (lat > lat1): 
+        newlon = 999999. 
+        newlat = 999999. 
+        goto,BOMB 
+     
+    # Wrong signs 
+    if np.abs(lonsgn) != 1 : 
+        goto,BOMB 
+    if np.abs(latsgn) != 1 : 
+        goto,BOMB 
+     
+    # figuring out the case 
+    #bit = ((latsgn+1.)*0.5) + 2.*((lonsgn+1.)*0.5) 
+    #bit = long(bit) 
+    # 
+    # bit (lon,lat) 
+    # 0 - (-1,-1) 
+    # 1 - (-1,+1) 
+    # 2 - (+1,-1) 
+    # 3 - (+1,+1) 
+     
+    tlon = float(lon) 
+    tlat = float(lat) 
+     
+    # Looping through all the steps 
+    for i in range(nstep): 
+     
+        # p2, incrementing vertically 
+        if p2:
+            # UP, at the end 
+            if (latsgn == 1) and (tlat == lat1): 
+                newlon = 999999. 
+                newlat = 999999. 
+                continue
+            # DOWN, at the end 
+            if (latsgn == -1) and (tlat == lat0): 
+                newlon = 999999. 
+                newlat = 999999. 
+                continue 
+         
+            # Not at end, normal increment 
+            newlon = tlon 
+            newlat = tlat + latsgn * step 
+         
+        # Incrementing Sideways 
+        else: 
+            # RIGHT, lonsgn = +1 
+            if (lonsgn == 1): 
+                # UP, the very end 
+                if (latsgn == 1) and (tlon == lon1) and (tlat == lat1): 
+                    newlon = 999999. 
+                    newlat = 999999. 
+                    continue
+                # DOWN, the very end 
+                if (latsgn == -1) and (tlon == lon1) and (tlat == lat0): 
+                    newlon = 999999. 
+                    newlat = 999999. 
+                    continue 
+             
+                # At end of longitude, increment latitude 
+                if (tlon == lon1): 
+                    newlon = lon0 
+                    newlat = tlat + latsgn * step 
+             
+                # Normal increment 
+                if (tlon != lon1): 
+                    newlon = tlon + lonsgn * step 
+                    newlat = tlat 
+         
+            # LEFT, lonsgn = -1 
+            if (lonsgn == -1): 
+                # UP, the very end 
+                if (latsgn == 1) and (tlon == lon0) and (tlat == lat1): 
+                    newlon = 999999. 
+                    newlat = 999999. 
+                    continue
+                # DOWN, the very end 
+                if (latsgn == -1) and (tlon == lon0) and (tlat == lat0): 
+                    newlon = 999999. 
+                    newlat = 999999. 
+                    continue 
+             
+                # At end of longitude, increment latitude 
+                if (tlon == lon0): 
+                    newlon = lon1 
+                    newlat = tlat + latsgn * step 
+             
+                # Normal increment 
+                if (tlon != lon0): 
+                    newlon = tlon + lonsgn * step 
+                    newlat = tlat 
+     
+        # In case we're looping 
+        tlon = newlon 
+        tlat = newlat 
+     
+    # Final answer 
+    newlon = tlon 
+    newlat = tlat 
+
+    return newlon,newlat
+
+
+def gredo(lon,lat,guesslon,guesslat,guesspar):
+    """
+    This function checks wether we can redo this location again 
+    returns 1 if this redo is okay 
+    returns 0 if this redo is NOT okay 
+    
+    Parameters
+    ----------
+    lon       Longitude of current position 
+    lat       Latitude of current position 
+    guesslon  Longitude of guess position 
+    guesslat  Latitude of guess position 
+    guesspar  Guess parameters 
+     
+    Parameters
+    ----------
+    flag      Function value is either: 
+                  1 - Redo okay. This guess has not been done before 
+                  0 - Redo NOT okay. This guess has been done before 
+     
+    When there are any problems in this program it returns: 
+    flag = -1 
+     
+    Created by David Nidever April 2005 
+    """
+     
+    # Bad to start out with 
+    flag = -1 
+     
+    # Making sure it's the right structure 
+    tags = tag_names(*(!btrack.data)) 
+    if (len(tags) != 15) : 
+        return -1 
+    btags = ['COUNT','LON','LAT','RMS','NOISE','PAR','GUESSPAR','GUESSLON','GUESSLAT',
+             'BACK','REDO','REDO_FAIL','SKIP','LASTLON','LASTLAT'] 
+    comp = (tags == btags) 
+    if ((where(comp != 1))(0) != -1) : 
+        return -1 
+     
+    flag = 1 # do it unless proven wrong 
+     
+    # FROM **ANY** PREVIOUS POSITION 
+    prev, = np.where((*(!btrack.data)).lon == lon and (*(!btrack.data)).lat == lat)
+    nprev = len(prev)
+     
+    gd1, = np.where(guesspar != 999999.) 
+    if (len(gd1) == 0): 
+        return 0 
+    tguesspar = guesspar[gd1]
+    nguesspar = len(tguesspar) 
+    ngg = nguesspar//3 
+     
+    # FROM **ANY** PREVIOUS POSITION 
+    # we have used a guess from this position before 
+    #  but have the parameters changed sufficiently 
+    if (nprev > 0): 
+         
+        # Looping through the previous ones 
+        for i in range(nprev): 
+            guesspar2 = (*(!btrack.data))[prev[i]].guesspar 
+            gd2, = np.where(guesspar2 != 999999.,ngd2) 
+         
+            # Some gaussians found 
+            if (len(gd2) > 0): 
+                tpar = guesspar2[gd2]
+                ntpar = len(tpar) 
+                ntg = ntpar//3      # of gaussians in this guess 
+             
+                # Same number of gaussians 
+                if (ntpar == nguesspar): 
+                    # Sorting, largest first 
+                    tpar2 = utils.gsort(tpar) 
+                    tguesspar2 = utils.gsort(tguesspar) 
+                    
+                    # Gixing possible zeros that could ruin the ratio 
+                    dum = np.copy(tpar2)
+                    bd, = np.where(dum == 0.) 
+                    if len(bd) > 0:
+                        dum[bd] = 1e-5 
+                    diff = np.abs(tpar2 - tguesspar2) 
+                    ratio = diff/np.abs(dum) 
+                 
+                    # These differences are too small, NO redo 
+                    if (np.max(ratio) < 0.01): 
+                        return 0
+ 
+    return flag 
+
+
+def gbetter(par1,rms1,noise1,par2,rms2,noise2):
+    """
+    This function tries to figure out if one gaussian 
+    analysis is better than another. 
+     
+    Parameters
+    ----------
+    par1    Gaussian Parameters of position 1 
+    rms1    RMS of position 1 
+    noise1  Noise level of position 1 
+    par2    Gaussian Parameters of position 2 
+    rms2    RMS of position 2 
+    noise2  Noise level of position 2 
+     
+    Returns
+    -------
+    better  The function value is either: 
+                1 - Second position better than the first 
+                0 - First position better than the second 
+               -1 - Any problems 
+     
+    If the first one is better then it returns 0 
+    and if the second one is better it returns 1 
+     
+    When this program has any problems is return: 
+      better = -1 
+     
+    Created by David Nidever April 2005 
+    """
+ 
+    better = -1   # default unless proven wrong 
+     
+    # In case either one is -1 (bad) 
+    if len(par1) > 0 and len(par2) > 0: 
+        if (rms1 == -1) and (rms2 != -1): 
+            better = 1
+        if (rms1 != -1) and (rms2 == -1): 
+            better = 0 
+        if (rms1 == -1) and (rms2 == -1): 
+            better = -1 
+        if (rms1 == -1) or (rms2 == -1): 
+            return better
+        if (len(par1) < 3) and (len(par2) >= 3): 
+            better = 1 
+        if (len(par2) < 3) and (len(par1) >= 3): 
+            better = 0 
+        if (len(par1) < 3) or (len(par2) < 3): 
+            return better
+
+    if par2 is None:
+        return better
+     
+    drms1 = rms1-noise1 
+    drms2 = rms2-noise2 
+    n1 = len(par1)/3 
+    n2 = len(par2)/3 
+     
+    # Clear cut, rms better, n equal or less 
+    if (drms1 < drms2) and (n1 <= n2): 
+        better = 0 
+    if (drms1 > drms2) and (n1 >= n2): 
+        better = 1 
+     
+    # rms same, n different 
+    if (drms1 == drms2) and (n1 <= n2): 
+        better = 0 
+    if (drms1 == drms2) and (n1 > n2): 
+        better = 1 
+     
+    # mixed bag, lower rms but higher n 
+    if (drms1 < drms2) and (n1 > n2): 
+        ddrms = drms2-drms1 
+        rdrms = ddrms/drms2   # ratio compared to worse one 
+        dn = n1-n2 
+         
+        better = 1    # default 
+        if (dn == 1) and (rdrms > 0.2) : 
+            better = 0 
+        if (dn == 2) and (rdrms > 0.5) : 
+            better = 0 
+        if (dn == 3) and (rdrms > 1.0) : 
+            better = 0 
+        if (dn >= 4) and (rdrms > 2.0) : 
+            better = 0 
+     
+    if (drms2 < drms1) and (n2 > n1): 
+        ddrms = drms1-drms2 
+        rdrms = ddrms/drms1    # ratio compared to worse one 
+        dn = n2-n1 
+         
+        better = 0   # default 
+        if (dn == 1) and (rdrms > 0.2) : 
+            better = 1 
+        if (dn == 2) and (rdrms > 0.5) : 
+            better = 1 
+        if (dn == 3) and (rdrms > 1.0) : 
+            better = 1 
+        if (dn >= 4) and (rdrms > 2.0) : 
+            better = 1 
+     
+    return better 
+
+
+def gfind(lon,lat,lonr=None,latr=None):
+    """
+    This function helps find a latitude and longitude in 
+    the gaussian components structure. 
+     
+    Parameters
+    ----------
+    lon     Longitude to search for 
+    lat     Latitude to search for 
+    lonr    Two element array of longitude limits, lonr=[lonmin,lonmax] 
+    latr    Two element array of latitude limits, latr=[latmin,latmax] 
+     
+    Returns
+    -------
+    flag    The function value is either 0 or 1: 
+                 1 - the position exists in the structure 
+                 0 - the position does NOT exist in the structure 
+                -1 - any problems 
+    pind     Index of position in !gstruc. 
+    rms     RMS of gaussian fit at the desired position 
+    noise   Noise level at desired position 
+    par     Parameters of gaussians in gstruc with the desired position 
+     
+    When there are any problems in this program it returns: 
+     flag = -1 
+     rms = -1 
+     noise = -1 
+     par = -1 
+     pind = -1 
+     
+    Created by David Nidever April 2005 
+    """
+
+    # Assume bad until proven otherwise 
+    flag = -1 
+    rms = -1 
+    noise = -1 
+    par = -1 
+    pind = -1 
+     
+    # Setting the ranges
+    if lonr is not None:
+        lon0 = lonr[0] 
+        lon1 = lonr[1] 
+    else: 
+        lon0 = 0. 
+        lon1 = 359.5
+    if latr is not None:
+        lat0 = latr[0] 
+        lat1 = latr[1] 
+    else: 
+        lat0 = -90. 
+        lat1 = 90. 
+     
+    if (lon < lon0) or (lon > lon1) or (lat < lat0) or (lat > lat1): 
+        flag = -1 
+        rms = -1 
+        noise = -1 
+        par = -1 
+        pind = -1 
+        return flag,pind,rms,noise,par
+     
+    # No !gstruc yet, first position 
+    DEFSYSV,'!gstruc',exists=gstruc_exists 
+    if gstruc_exists == 0: 
+        rms = -1 
+        noise = -1 
+        par = -1 
+        pind = -1 
+        flag = 0 
+        return flag,pind,rms,noise,par 
+     
+    # Looking for the position 
+    t0 = time.time() 
+    # LONSTART/LATSTART has a value for each position, faster searching 
+    #  use NGAUSS and INDSTART to get the indices into DATA 
+    pind, = np.where(*(!gstruc.lonstart) == lon and *(!gstruc.latstart) == lat)
+    npind = len(pind)
+    print('find ',time.time()-t0)
+     
+    # Found something, getting the values 
+    if npind > 0: 
+        ind = l64indgen((*(!gstruc.ngauss))[pind[0]])+(*(!gstruc.indstart))[pind[0]] 
+        rms = first_el((*(!gstruc.data))[ind].rms) 
+        noise = first_el((*(!gstruc.data))[ind].noise) 
+        par = ((*(!gstruc.data))[ind].par)(*) 
+        flag = 1 
+         
+    # Nothing found 
+    else: 
+        rms = -1 
+        noise = -1 
+        par = -1 
+        flag = 0 
+     
+    return flag,pind,rms,noise,par
+
+
+def gguess(lon,lat,lonsgn=1,latsgn=1,lonr=None,latr=None):
+    """
+    This program finds the best guess for the new profile 
+    The one from the backwards positions. 
+    If it can't find one then it returns 999999.'s 
+     
+    Parameters
+    ----------
+    lon      Longitude of current position 
+    lat      Latitude of current position 
+    lonsgn   Sign of longitude increment 
+    latsgn   Sign of latitude increment 
+    lonr     Two element array of longitude limits 
+    latr     Two element array of latitude limits 
+     
+    Returns
+    -------
+    guesspar  The first guess gaussian parameters 
+    guesslon  The longitude of the position where the 
+                   guess parameters came from 
+    guesslat  The latitude of the position where the 
+                   guess parameters came from 
+     
+    When this program has problems it returns: 
+      guesspar = 999999. 
+      guesslon = 999999. 
+      guesslat = 999999. 
+     
+    Created by David Nidever April 2005 
+    """
+     
+    # Bad until proven okay 
+    guesspar = 999999. 
+    guesslon = 999999. 
+    guesslat = 999999. 
+     
+    # Making sure it's the right structure 
+    tags = tag_names(*(!gstruc.data)) 
+    if (len(tags) != 6) : 
+        return guesspar,guesslon,guesslat 
+    comp = (tags == ['LON','LAT','RMS','NOISE','PAR','SIGPAR']) 
+    if ((where(comp != 1))(0) != -1) :
+        return guesspar,guesslon,guesslat         
+     
+    # Saving the originals 
+    orig_lon = lon 
+    orig_lat = lat 
+
+    if lonr is None:
+        lonr = [0.,359.5]
+    if latr is None:
+        latr = [-90.,90.] 
+     
+    # Is the longitude range continuous?? 
+    if (lonr[0] == 0.) and (lonr[1] == 359.5): 
+        cont = 1 
+    else: 
+        cont = 0 
+     
+    # getting the p3 and p4 positions 
+    # P3 back in longitude (l-0.5), same latitude 
+    # P4 back in latitude (b-0.5), same longitude 
+    lon3,lat3 = gincrement(lon,lat,lonsgn=-lonsgn,latsgn=-latsgn,lonr=lonr,latr=latr)
+    lon4,lat4 = gincrement(lon,lat,lonsgn=lonsgn,latsgn=-latsgn,lonr=lonr,latr=latr,p2=True)
+     
+    # CHECKING OUT THE EDGES 
+    # AT THE LEFT EDGE, and continuous, Moving RIGHT, use neighbor on other side 
+    # Use it for the guess, but never move to it directly 
+    if (lon == lonr[0]) and (lonsgn == 1) and (cont == 1): 
+        lat3 = lat 
+        lon3 = lonr[1] 
+     
+    # AT THE RIGHT EDGE, and continuous, Moving LEFT 
+    if (lon == lonr[1]) and (lonsgn == -1) and (cont == 1): 
+        lat3 = lat 
+        lon3 = lonr[0] 
+     
+    # At the edge, NOT continuous, Moving RIGHT, NO P3 NEIGHBOR 
+    if (lon == lonr[0]) and (lonsgn == 1) and (cont == 0): 
+        lon3 = 999999. 
+        lat3 = 999999. 
+     
+    # At the edge, NOT continuous, Moving LEFT, NO P3 NEIGHBOR 
+    if (lon == lonr[1]) and (lonsgn == -1) and (cont == 0): 
+        lon3 = 999999. 
+        lat3 = 999999. 
+     
+    # Have they been visited before? 
+    p3 = gfind(lon3,lat3,ind=ind3,rms=rms3,noise=noise3,par=par3) 
+    p4 = gfind(lon4,lat4,ind=ind4,rms=rms4,noise=noise4,par=par4) 
+     
+    # Comparing the solutions 
+    b34 = gbetter(par3,rms3,noise3,par4,rms4,noise4) 
+     
+    # selecting the best guess 
+    if (b34 == 0):# using P3 
+        guesspar = par3 
+        guesslon = lon3 
+        guesslat = lat3 
+    if (b34 == 1):# using P4 
+        guesspar = par4 
+        guesslon = lon4 
+        guesslat = lat4 
+    if (b34 == -1): 
+        guesspar = 999999. 
+        guesslon = 999999. 
+        guesslat = 999999. 
+     
+    # Putting the originals back 
+    lon = orig_lon 
+    lat = orig_lat 
+
+    return guesspar,guesslon,guesslat  
+
 
 def gdriver(lonstart,latstart,cubefile=None,outfile=None,noprint=False,noplot=False,
             plotxr=None,lonsgn=1,latsgn=1,lonr=None,latr=None,trackplot=False,
