@@ -1,1 +1,1 @@
-__all__ = ['spectrum','utils','fitter','driver']
+__all__ = ['spectrum','cube','utils','fitter','driver']
