@@ -11,6 +11,7 @@ __version__ = '20220326'  # yyyymmdd
 import os
 import numpy as np
 import warnings
+import copy
 from scipy import sparse
 from scipy.interpolate import interp1d
 from astropy.wcs import WCS
@@ -113,3 +114,26 @@ class Cube:
         """ Get the coordinates for this X/Y position."""
         
         return self._wcs.pixel_to_world(x,y)
+
+    def copy(self):
+        """ Create a copy of the cube."""
+        return copy.deepcopy(self)
+                    
+    def write(self,outfile):
+        """ Write cube to a file."""
+        if self._cube is None:
+            print('No data to write out')
+            return
+        hdu = fits.HDUList()
+        hdu.append(fits.PrimaryHDU(self._cube,self._header))
+        # add values to header
+        if self._veldim is not None:
+            hdu[0].header['veldim'] = veldim
+        hdu.writeto(outfile,overwrite=True)
+
+    @classmethod
+    def read(cls,infile):
+        """ Read in a cube from a file."""
+        cube,head = fits.getdata(infile,header=True)
+        # get information from header?
+        return Cube(cube,header=head)

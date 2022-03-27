@@ -11,6 +11,7 @@ __version__ = '20200122'  # yyyymmdd
 import os
 import numpy as np
 import warnings
+import copy
 from scipy import sparse
 from scipy.interpolate import interp1d
 from dlnpyutils import utils as dln
@@ -65,4 +66,22 @@ class Spectrum:
         self._model = model
         return model
 
+    def copy(self):
+        """ Create a copy of the spectrum."""
+        return copy.deepcopy(self)
+    
+    def write(self,outfile):
+        """ Write spectrum to a file."""
+        out = np.zeros((n,2),float)
+        out[:,0] = self.flux
+        out[:,1] = self.vel
+        hdu = fits.HDUList()
+        hdu.append(fits.PrimaryHDU(out))
+        hdu.writeto(outfile,overwrite=True)
+        
+    @classethod
+    def read(cls,infile):
+        """ Read in a spectrum from a file."""
+        data,head = fits.getdata(infile,header=True)
+        return Spectrum(data[:,0],data[:,1])
     
