@@ -3,13 +3,16 @@
 import os
 import time
 import numpy as np
-from . import utils,fitter,cube
+from datetime import datetime
+from dlnpyutils import utils as dln
+from . import utils,fitter
+from .cube import Cube
 
 # Tracking lists
 BTRACK = []
 GSTRUC = []
 
-def gincrement(x,y,newx,newy,xr=None,yr=None,
+def gincrement(x,y,xr=None,yr=None,
                xsgn=1,ysgn=1,nstep=1,p2=False):
     """
     This program increments the position 
@@ -953,10 +956,10 @@ def nextmove(x,y,xsgn,ysgn,xr,yr):
 
 
 
-def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
-            plotxr=None,xsgn=1,ysgn=1,xr=None,yr=None,trackplot=False,
-            noback=False,backret=True,gstruc=None,btrack=None,savestep=None,
-            gassnum=None,subcube=None,wander=False,clobber=False):
+def driver(datacube,xstart=0,ystart=0,outfile=None,noprint=False,noplot=False,
+           plotxr=None,xsgn=1,ysgn=1,xr=None,yr=None,trackplot=False,
+           noback=False,backret=True,gstruc=None,btrack=None,savestep=None,
+           gassnum=None,subcube=None,wander=False,clobber=False):
     """
     This program runs the gaussian fitting program 
     on a large part of the HI all sky survey 
@@ -989,9 +992,9 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
      
     Parameters
     ----------
+    datacube      Cube object or filename.
     xstart        The x to start with 
     ystart        The y to start with 
-    =cubefile       The filename of the main datacube. 
     xr            X range 
     yr            Y range 
     xsgn          Direction of x increments (-1 or 1) 
@@ -1076,12 +1079,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         backret = False
     if noback:
         backret = False
- 
-    # No cube filename input 
-    if cubefile is None:
-        print('Must input CUBEFILE')
-        return 
- 
+
     # No mode selected, using default mode (backret) 
     if (backret == False) and (noback == False) and (wander == False): 
         print('' )
@@ -1089,16 +1087,20 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         print('')
         sleep(3) 
         backret = True
- 
+
+    # Load the cube
+    if type(datacube) is str:
+        datacubefile = datacube
+        print('Loading '+datacubefile)
+        datacube = Cube.read(datacubefile)
+        
     # Restore file 
     #restore_file = repstr(outfile,'.fits','_restore.sav') 
  
     # Checking the file
-    #if outfile is None:
-    #    date = strsplit(systime(0),/extract) 
-    #    time = strsplit(date(3),':',/extract) 
-    #    # gauss_Apr202005_080136.dat, day, month, year, hour, minute, second 
-    #    outfile = 'gauss_'+date(1)+date(2)+date(4)+'_'+time(0)+time(1)+time(2)+'.dat' 
+    if outfile is None:
+        logtime = datetime.now().strftime("%Y%m%d%H%M%S") 
+        outfile = 'gaussdecomp_'+logtime+'.fits' 
     #dum = findfile(outfile) 
     #if dum != '': 
     #    print('THE FILE ',outfile,' EXISTS ALREADY !!!' )
@@ -1111,12 +1113,12 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
     # Printing out the inputs 
     print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
     print('-----------------------------------------------------------')
-    print(' STARTING POSITION = (',stringize(xstart,ndec=1),',',stringize(ystart,ndec=1),')')
-    print(' X RANGE = [',stringize(xr(0),ndec=1),',',stringize(xr(1),ndec=1),']' )
-    print(' Y RANGE = [',stringize(yr(0),ndec=1),',',stringize(yr(1),ndec=1),']' )
-    print(' X DIRECTION = ',stringize(xsgn))
-    print(' Y DIRECTION = ',stringize(ysgn))
-    print(' OUTFILE = ',outfile)
+    print(' STARTING POSITION = (%d,%d)' % (xstart,ystart))
+    print(' X RANGE = [%d,%d]' % (xr[0],xr[1]))
+    print(' Y RANGE = [%d,%d]' % (yr[0],yr[1]))
+    print(' X DIRECTION = '+str(xsgn))
+    print(' Y DIRECTION = '+str(ysgn))
+    print(' OUTFILE = '+outfile)
     print('-----------------------------------------------------------')
     if (backret == 1) : 
         print(' USING (BACKRET) MODE')
@@ -1127,12 +1129,6 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
     print('-----------------------------------------------------------')
     print('')
  
-    # Is the x range continuous?? 
-    if (xr[0] == 0.) and (xr[1] == 410.0): 
-        cont = 1 
-    else: 
-        cont = 0 
-
     # Initializing some parameters 
     redo_fail = False 
     redo = False
@@ -1168,11 +1164,11 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         # 
         # Move forward in x if possible 
          
-        tstr,tstr1,tstr2,skip,guessx,guessy,guesspar = None,None,None,False,None,None,None
-
+        tstr,tstr1,tstr2,skip,guessx,guessy,guesspar = None,None,None,False,None,None,None        
          
         # STARTING WITH BTRACK, RESTORING THE LAST STATE 
         if (count == 0) and (gstruc is not None and btrack is not None):
+            import pdb; pdb.set_trace()
             nbtrack = len(btrack) 
             count = btrack[nbtrack-1]['count']
             x = btrack[nbtrack-1]['x']
@@ -1206,17 +1202,18 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         # FIGURE OUT THE NEXT MOVE 
         #------------------------- 
         if (count > 0):
+            import pdb; pdb.set_trace()
             lastx,lasty = x,y
             x,y,guesspar = nextmove(x,y,xsgn,ysgn,xr,yr)
-            spec = cube(x,y)  # Get the new spectrum
 
 
         # MAYBE KEEP THE BTRACK AND GSTRUC *IN* THE CUBE OBJECT!!!!
 
+        #import pdb; pdb.set_trace()
+        
  
         # Starting the tracking structure, bad until proven good
         track = track_dict.copy()
-        nguesspar = len(guesspar) 
         track['count'] = count 
         track['x'] = x 
         track['y'] = y 
@@ -1246,7 +1243,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         #------------------------------------------------ 
         if skip == False: 
             t0 = time.time() 
- 
+            
             # Initial Printing 
             print('Fitting Gaussians to the HI spectrum at (%d,%d)' % (x,y))
             strout = ''
@@ -1258,25 +1255,30 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
                 strout = strout+'FORWARD' 
             print(strout) 
                           
-            # Getting the HI spectrum 
-            spec,v,lon,lat = loadspec(cubefile,x,y,npts=npts,noise=noise)
+            # Getting the HI spectrum
+            spec = datacube(x,y)  # Get the new spectrum
+            noise = spec.noise
+            npts = spec.n
+            #spec,v,lon,lat = loadspec(cubefile,x,y,npts=npts,noise=noise)
  
             # No good spectrum 
-            if npts == 0: 
+            if spec is None or np.sum(spec.flux)==0:
                 rms = None
                 noise = None
                 skip = True
+                count += 1
                 continue
                 #goto,SKIP 
  
-            smspec = dln.savgol(spec,21,2) 
-            dum,vindcen = dln.closest(v,0) 
+            smspec = dln.savgol(spec.flux,21,2) 
+            dum,vindcen = dln.closest(spec.vel,0) 
  
             # GETTIING THE VELOCITY RANGE around the zero-velocity MW peak 
             
             # Finding the vel. low point 
             flag = 0 
-            i = vindcen 
+            i = vindcen
+            lo = 0
             while (flag == 0): 
                 if smspec[i] <= noise: 
                     lo = i 
@@ -1285,13 +1287,12 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
                 i -= 1 
                 if i < 0: 
                     flag = 1 
-            if len(lo) == 0:   # never dropped below the noise threshold 
-                lo = 0 
             lo = np.maximum(0,(lo-20))
  
             # Finding the vel. high point 
             flag = 0 
-            i = vindcen 
+            i = vindcen
+            hi = npts-1
             while (flag == 0): 
                 if smspec[i] <= noise : 
                     hi = i 
@@ -1300,16 +1301,15 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
                 i += 1 
                 if i > npts-1: 
                     flag = 1 
-            if len(hi) == 0: 
-                hi = npts-1 
             hi = np.minimum((npts-1),(hi+20))
  
-            vmin = v[lo] 
-            vmax = v[hi] 
+            vmin = spec.vel[lo] 
+            vmax = spec.vel[hi] 
  
             # RUNNING GAUSSFITTER ON ZERO VELOCITY REGION, WITH GUESS 
-            par0,sigpar0,rms,noise,v2,spec2,resid2 = fitter.gaussfitter(v,spec,vmin=vmin,vmax=vmax,initpar=guesspar,
-                                                                        noprint=True,noplot=True)
+            #par0,sigpar0,rms,noise,v2,spec2,resid2 = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,initpar=guesspar,
+            #                                                            noprint=True,noplot=True)
+            results = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,initpar=guesspar,noprint=True,noplot=True)            
  
             # FIT WITH NO GUESS (if first time and previous fit above with guess) 
             tp0 = gfind(x,y,xr=xr,yr=yr) 

@@ -76,7 +76,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
     rms0 = 999999. 
     count = 0 
     npar0 = 0 
-    y = spec 
+    y = np.copy(spec)
     endflag = 0 
     addt0 = time.time() 
  
@@ -117,11 +117,12 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
             if th[0] != 999999.: 
                 resid = y-th 
             else: 
-                resid = y 
+                resid = np.copy(y)
         else:
-            resid = y 
+            resid = np.copy(y)
          
-        # Smoothing the data 
+        # Smoothing the data
+        import pdb; pdb.set_trace()
         smresid4 = dln.savgol(resid, 9,2) 
         smresid16 = dln.savgol(resid, 33,2) 
         if (npts > 61): 
@@ -383,5 +384,6 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
     # No gaussians found 
     if par0 is None:
         return np.array([]),np.array([]),999999.,999999.        
- 
-    return par0,sigpar,resid,rms
+
+    results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms}
+    return results

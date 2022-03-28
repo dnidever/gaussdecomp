@@ -53,7 +53,7 @@ class Spectrum:
     def noise(self):
         if self._noise is not None:
             return self._noise
-        noise = utils.computenoise(self.flux)
+        noise = utils.computenoise(self)
         self._noise = noise
         return noise
 
