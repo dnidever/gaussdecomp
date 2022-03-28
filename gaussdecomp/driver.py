@@ -180,7 +180,7 @@ def gredo(x,y,guessx,guessy,guesspar):
     flag = False
      
     # Making sure it's the right structure 
-    tags = tag_names(*(!btrack.data)) 
+    #tags = tag_names(*(!btrack.data)) 
     if (len(tags) != 15) : 
         return -1 
     btags = ['COUNT','X','Y','RMS','NOISE','PAR','GUESSPAR','GUESSX','GUESSY',
@@ -192,7 +192,7 @@ def gredo(x,y,guessx,guessy,guesspar):
     flag = True # do it unless proven wrong 
      
     # FROM **ANY** PREVIOUS POSITION 
-    prev, = np.where((*(!btrack.data)).x == x and (*(!btrack.data)).y == y)
+    #prev, = np.where((*(!btrack.data)).x == x and (*(!btrack.data)).y == y)
     nprev = len(prev)
      
     gd1, = np.where(guesspar != 999999.) 
@@ -209,7 +209,7 @@ def gredo(x,y,guessx,guessy,guesspar):
          
         # Looping through the previous ones 
         for i in range(nprev): 
-            guesspar2 = (*(!btrack.data))[prev[i]].guesspar 
+            #guesspar2 = (*(!btrack.data))[prev[i]].guesspar 
             gd2, = np.where(guesspar2 != 999999.,ngd2) 
          
             # Some gaussians found 
@@ -410,16 +410,16 @@ def gfind(x,y,xr=None,yr=None):
     t0 = time.time() 
     # XSTART/YSTART has a value for each position, faster searching 
     #  use NGAUSS and INDSTART to get the indices into DATA 
-    pind, = np.where(*(!gstruc['xstart']) == x and *(!gstruc['ystart']) == y)
+    #pind, = np.where(*(!gstruc['xstart']) == x and *(!gstruc['ystart']) == y)
     npind = len(pind)
     print('find ',time.time()-t0)
      
     # Found something, getting the values 
     if npind > 0: 
-        ind = l64indgen((*(!gstruc['ngauss'])[pind[0]])+(*(!gstruc['indstart'])[pind[0]] 
-        rms = first_el((*(!gstruc['data'])[ind].rms) 
-        noise = first_el((*(!gstruc['data'])[ind].noise) 
-        par = ((*(!gstruc.data))[ind].par)(*) 
+        #ind = l64indgen((*(!gstruc['ngauss'])[pind[0]])+(*(!gstruc['indstart'])[pind[0]] 
+        #rms = first_el((*(!gstruc['data'])[ind].rms) 
+        #noise = first_el((*(!gstruc['data'])[ind].noise) 
+        #par = ((*(!gstruc.data))[ind].par)(*) 
         flag = 1 
          
     # Nothing found 
@@ -467,12 +467,12 @@ def gguess(x,y,xsgn=1,ysgn=1,xr=None,yr=None):
     guessy = None
      
     # Making sure it's the right structure 
-    tags = tag_names(*(!gstruc.data)) 
-    if (len(tags) != 6) : 
-        return guesspar,guessx,guessy 
-    comp = (tags == ['X','Y','RMS','NOISE','PAR','SIGPAR']) 
-    if ((where(comp != 1))(0) != -1) :
-        return guesspar,guessx,guessy         
+    #tags = tag_names(*(!gstruc.data)) 
+    #if (len(tags) != 6) : 
+    #    return guesspar,guessx,guessy 
+    #comp = (tags == ['X','Y','RMS','NOISE','PAR','SIGPAR']) 
+    #if ((where(comp != 1))(0) != -1) :
+    #    return guesspar,guessx,guessy         
      
     # Saving the originals 
     orig_x = x 
@@ -880,7 +880,7 @@ def nextmove(x,y,xsgn,ysgn,xr,yr):
                 if b1 and (b2 == False): 
                     # Can redo, moving to P2 
                     if redo2: 
-                        gincrement,x,y,newx,newy,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr,/p2 
+                        newx,newy = gincrement(x,y,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr,p2=True)
                     # can't redo, increment and skip 
                     else: 
                         newx,newy = gincrement(x,y,xsgn=xsgn,   # to P1 
@@ -901,7 +901,7 @@ def nextmove(x,y,xsgn,ysgn,xr,yr):
                                                        ysgn=ysgn,xr=xr,yr=yr)
                         # moving to P2 (P2 worse than P1) 
                         if (b12 == False):  # to P1 
-                            newx,newy = gincrement,(on,y,xsgn=xsgn,
+                            newx,newy = gincrement(x,y,xsgn=xsgn,
                                                         ysgn=ysgn,xr=xr,yr=yr,p2=True)
 
                     # Can't redo P2, goto P1 
@@ -923,7 +923,7 @@ def nextmove(x,y,xsgn,ysgn,xr,yr):
                 # Both better, increment and skip
                 #--------------------------------
                 if b1 and b2: 
-                    newx,newy = gincrement(x,y,,xsgn=xsgn,    # to P1 
+                    newx,newy = gincrement(x,y,xsgn=xsgn,    # to P1 
                                                ysgn=ysgn,xr=xr,yr=yr)
                     redo = False
                     skip = True 
@@ -940,7 +940,7 @@ def nextmove(x,y,xsgn,ysgn,xr,yr):
 
             # Neither has been visited before, increment
             #===========================================
-            if (p1 === False) and (p2 == False): 
+            if (p1 == False) and (p2 == False): 
                 # Increment 
                 newx,newy = gincrement(x,y,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr)
                 x = newx 
@@ -1078,7 +1078,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         backret = False
  
     # No cube filename input 
-    if cubefile is None
+    if cubefile is None:
         print('Must input CUBEFILE')
         return 
  
@@ -1091,22 +1091,22 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         backret = True
  
     # Restore file 
-    restore_file = repstr(outfile,'.fits','_restore.sav') 
+    #restore_file = repstr(outfile,'.fits','_restore.sav') 
  
     # Checking the file
-    if outfile is None:
-        date = strsplit(systime(0),/extract) 
-        time = strsplit(date(3),':',/extract) 
-        # gauss_Apr202005_080136.dat, day, month, year, hour, minute, second 
-        outfile = 'gauss_'+date(1)+date(2)+date(4)+'_'+time(0)+time(1)+time(2)+'.dat' 
-    dum = findfile(outfile) 
-    if dum != '': 
-        print('THE FILE ',outfile,' EXISTS ALREADY !!!' )
-        print('DO YOU WANT TO CONTINUE?')
-        quest='' 
-        read,quest 
-        if quest != 'y' and quest != 'yes' and quest != 'YES' and     quest != 'yes' and quest != 'Yes' : 
-        return
+    #if outfile is None:
+    #    date = strsplit(systime(0),/extract) 
+    #    time = strsplit(date(3),':',/extract) 
+    #    # gauss_Apr202005_080136.dat, day, month, year, hour, minute, second 
+    #    outfile = 'gauss_'+date(1)+date(2)+date(4)+'_'+time(0)+time(1)+time(2)+'.dat' 
+    #dum = findfile(outfile) 
+    #if dum != '': 
+    #    print('THE FILE ',outfile,' EXISTS ALREADY !!!' )
+    #    print('DO YOU WANT TO CONTINUE?')
+    #    quest='' 
+    #    read,quest 
+    #    if quest != 'y' and quest != 'yes' and quest != 'YES' and     quest != 'yes' and quest != 'Yes' : 
+    #    return
  
     # Printing out the inputs 
     print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
@@ -1116,7 +1116,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
     print(' Y RANGE = [',stringize(yr(0),ndec=1),',',stringize(yr(1),ndec=1),']' )
     print(' X DIRECTION = ',stringize(xsgn))
     print(' Y DIRECTION = ',stringize(ysgn))
-    print(' FILE = ',file)
+    print(' OUTFILE = ',outfile)
     print('-----------------------------------------------------------')
     if (backret == 1) : 
         print(' USING (BACKRET) MODE')
@@ -1208,7 +1208,10 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         if (count > 0):
             lastx,lasty = x,y
             x,y,guesspar = nextmove(x,y,xsgn,ysgn,xr,yr)
+            spec = cube(x,y)  # Get the new spectrum
 
+
+        # MAYBE KEEP THE BTRACK AND GSTRUC *IN* THE CUBE OBJECT!!!!
 
  
         # Starting the tracking structure, bad until proven good
@@ -1241,7 +1244,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
  
         # FITTING THE SPECTRUM, UNLESS WE'RE SKIPPING IT 
         #------------------------------------------------ 
-        if (skip == False: 
+        if skip == False: 
             t0 = time.time() 
  
             # Initial Printing 
@@ -1431,8 +1434,8 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
                 # This is a re-decomposition 
                 if old and redo: 
                     # Checking the two decompositions 
-                    par2 = (tstr.par)(*)# new one 
-                    rms2 = first_el(tstr.rms) 
+                    par2 = tstr['par']  # new one 
+                    rms2 = tstr['rms'][0]
                     b = gbetter(par2,rms2,noise2,par1,rms1,noise1) 
                     # This one's better 
                     if (b == False): 
@@ -1481,7 +1484,7 @@ def gdriver(xstart,ystart,cubefile=None,outfile=None,noprint=False,noplot=False,
         lastx = x 
         lasty = y 
  
-        print('This iteration ',time.time()-t00))
+        print('This iteration ',time.time()-t00)
  
         # SAVING THE STRUCTURES, periodically
         if savestep == False:

@@ -14,6 +14,7 @@ import warnings
 import copy
 from scipy import sparse
 from scipy.interpolate import interp1d
+from astropy.io import fits
 from astropy.wcs import WCS
 from dlnpyutils import utils as dln
 from . import utils
@@ -42,7 +43,7 @@ class Cube:
             for i in range(3):
                 ctype = header.get('ctype'+str(i+1))
                 if 'vel' in ctype.lower() or 'vrad' in ctype.lower() or 'vlsr' in ctype.lower():
-                    self._veldim = i+1
+                    self._veldim = i
         if self._veldim is not None:
             naxis = header.get('naxis'+str(self._veldim+1))
             cdelt = header.get('cdelt'+str(self._veldim+1))
@@ -58,24 +59,26 @@ class Cube:
             left = np.delete(left,self._veldim)
             self._xdim = left[0]
             naxis1 = header.get('naxis'+str(self._xdim+1))            
-            ctype1 = header.get('ctype'+str(self._xdim+1))
-            cdelt1 = header.get('cdelt'+str(self._xdim+1))
-            crval1 = header.get('crval'+str(self._xdim+1))
-            crpix1 = header.get('crpix'+str(self._xdim+1))
-            x = crval1 + cdelt1 * (np.arange(naxis1)+1-crpix1)
+            #ctype1 = header.get('ctype'+str(self._xdim+1))
+            #cdelt1 = header.get('cdelt'+str(self._xdim+1))
+            #crval1 = header.get('crval'+str(self._xdim+1))
+            #crpix1 = header.get('crpix'+str(self._xdim+1))
+            #x = crval1 + cdelt1 * (np.arange(naxis1)+1-crpix1)
+            x = np.arange(naxis1).astype(int)
             self._x = x
             self._nx = len(x)
-            self._xtype = ctype1
+            #self._xtype = ctype1
             self._ydim = left[1]            
             naxis2 = header.get('naxis'+str(self._ydim+1))
-            ctype2 = header.get('ctype'+str(self._ydim+1))            
-            cdelt2 = header.get('cdelt'+str(self._ydim+1))
-            crval2 = header.get('crval'+str(self._ydim+1))
-            crpix2 = header.get('crpix'+str(self._ydim+1))
-            y = crval2 + cdelt2 * (np.arange(naxis2)+1-crpix2)            
+            #ctype2 = header.get('ctype'+str(self._ydim+1))            
+            #cdelt2 = header.get('cdelt'+str(self._ydim+1))
+            #crval2 = header.get('crval'+str(self._ydim+1))
+            #crpix2 = header.get('crpix'+str(self._ydim+1))
+            #y = crval2 + cdelt2 * (np.arange(naxis2)+1-crpix2)
+            y = np.arange(naxis2).astype(int)
             self._y = y
             self._ny = len(y)
-            self._ytype = ctype2
+            #self._ytype = ctype2
         else:
             self._xdim = None
             self._ydim = None
@@ -85,15 +88,17 @@ class Cube:
             self._y = None
         
     def __repr__(self):
-        out = self.__class__.__name__ + '('
-        out += 'N=%d, %.2f < V < %.2f\)n' % \
-               (self.n,self.vrange[0],self.vrange[1])
+        out = self.__class__.__name__
+        #out = self.__class__.__name__ + '('        
+        #out += 'N=%d, %.2f < V < %.2f\)n' % \
+        #       (self.n,self.vrange[0],self.vrange[1])
         return out
 
     def __str__(self):
-        out = self.__class__.__name__ + '('
-        out += 'N=%d, %.2f < V < %.2f)\n' % \
-               (self.n,self.vrange[0],self.vrange[1])
+        out = self.__class__.__name__        
+        #out = self.__class__.__name__ + '('
+        #out += 'N=%d, %.2f < V < %.2f)\n' % \
+        #       (self.n,self.vrange[0],self.vrange[1])
         return out
 
     def __call__(self,x,y):
@@ -102,14 +107,17 @@ class Cube:
             return self._getfunction(x,y)
         else:
             if self._veldim == 0:
-                return np.copy(self._vel), np.copy(self._data[:,x,y])
+                vel,flux = np.copy(self._vel), np.copy(self._data[:,x,y])
             elif self._veldim == 1:
-                return np.copy(self._vel), np.copy(self._data[x,:,y])                
+                vel,flux = np.copy(self._vel), np.copy(self._data[x,:,y])                
             elif self._veldim == 2:
-                return np.copy(self._vel), np.copy(self._data[x,y,:])                
+                vel,flux = np.copy(self._vel), np.copy(self._data[x,y,:])                
             else:
                 print('not understood')
-
+        # Return spectrum object
+        return spectrum.Spectrum(flux,vel)
+                
+                
     def coords(self,x,y):
         """ Get the coordinates for this X/Y position."""
         

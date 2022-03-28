@@ -12,6 +12,7 @@ import os
 import numpy as np
 import warnings
 import copy
+from astropy.io import fits
 from scipy import sparse
 from scipy.interpolate import interp1d
 from dlnpyutils import utils as dln
@@ -38,7 +39,7 @@ class Spectrum:
 
     def __repr__(self):
         out = self.__class__.__name__ + '('
-        out += 'N=%d, %.2f < V < %.2f\)n' % \
+        out += 'N=%d, %.2f < V < %.2f)\n' % \
                (self.n,self.vrange[0],self.vrange[1])
         return out
 
@@ -79,7 +80,7 @@ class Spectrum:
         hdu.append(fits.PrimaryHDU(out))
         hdu.writeto(outfile,overwrite=True)
         
-    @classethod
+    @classmethod
     def read(cls,infile):
         """ Read in a spectrum from a file."""
         data,head = fits.getdata(infile,header=True)
