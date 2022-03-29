@@ -3,8 +3,135 @@ Examples
 ********
 
 
-Running |gaussdecomp|
-=====================
+Running Python |gaussdecomp|
+============================
+
+Here's an example of running Python |gaussdecomp| on a GBT datacube.
+
+
+.. code-block:: python
+
+	from gaussdriver import driver
+	gstruc = driver.driver('mycube.fits',368,8)                                                                                                                                        
+	RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS
+	-----------------------------------------------------------
+	STARTING POSITION = (368,8)
+	X RANGE = [0,499]
+	Y RANGE = [0,249]
+	X DIRECTION = 1
+	Y DIRECTION = 1
+	OUTFILE = gaussdecomp_20220329165135.fits
+	-----------------------------------------------------------
+	USING (BACKRET) MODE
+	-----------------------------------------------------------
+
+	Fitting Gaussians to the HI spectrum at (368,8)
+	FORWARD
+	Zero-velocity region INCLUDED.  Fitting it separately
+	Attempting to remove small Gaussians
+	Attempting to remove small Gaussians
+	----------------------------------------------------------
+	#       Height         Center         Width       Area
+	----------------------------------------------------------
+	1   24.11 (0.47)  -2.30 (0.04)   6.23 (0.07) 376.64
+	2    3.95 (0.12) -36.17 (0.59)  32.14 (0.50) 317.88
+	3   12.63 (0.14) -44.70 (0.09)   5.62 (0.13) 177.83
+	4    7.99 (0.77)  -1.91 (0.37)   2.24 (0.27)  44.89
+	5    5.05 (0.15) -30.43 (0.11)   3.13 (0.12)  39.63
+	6    2.92 (0.15) -58.41 (0.38)   4.38 (0.31)  32.01
+	7    8.62 (1.35)   1.51 (0.14)   1.46 (0.10)  31.49
+	8    0.81 (0.02) 590.60 (15.05) 256.46 (9.09) 520.46
+	----------------------------------------------------------
+	RMS = 0.085
+	Noise = 0.250
+	dt = 1.5 sec
+	
+	Last/Current Position = (368,8)
+	Neighbors (position)  visited  better  redo
+	P1 (  369,    8)        0       -1    False
+	P2 (  368,    9)        0       -1    False
+	P3 (  367,    8)        0       -1    False
+	P4 (  368,    7)        0       -1    False
+	
+	Fitting Gaussians to the HI spectrum at (369,8)
+	FORWARD
+	Zero-velocity region INCLUDED.  Fitting it separately
+	Attempting to remove small Gaussians
+	Attempting to remove small Gaussians
+	----------------------------------------------------------
+	#       Height         Center         Width       Area
+	----------------------------------------------------------
+	1   29.60 (0.23)  -2.44 (0.05)   5.77 (0.04) 428.43
+	2    4.54 (0.15) -34.18 (0.71)  31.46 (0.59) 357.99
+	3   10.24 (0.49) -43.71 (0.30)   4.66 (0.34) 119.56
+	4    4.11 (0.39) -55.35 (1.20)   5.76 (0.75)  59.36
+	5    3.89 (0.26) -31.85 (0.38)   3.66 (0.35)  35.66
+	6    8.63 (0.30)   0.97 (0.05)   1.63 (0.07)  35.21
+	7    0.83 (0.02) 590.60 (18.42) 251.09 (11.13) 519.35
+	----------------------------------------------------------
+	RMS = 0.107
+	Noise = 0.217
+	dt = 1.7 sec
+	
+	Count = 2
+	Last/Current Position = (369,8)
+	Neighbors (position)  visited  better  redo
+	P1 (  370,    8)        0       -1    False
+	P2 (  369,    9)        0       -1    False
+	P3 (  368,    8)        1        0     True
+	P4 (  369,    7)        0       -1    False
+	
+	Fitting Gaussians to the HI spectrum at (368,8)
+	REDO FORWARD
+	Zero-velocity region INCLUDED.  Fitting it separately
+	Using First Guess Parameters
+	Attempting to remove small Gaussians
+	----------------------------------------------------------
+	#       Height         Center         Width       Area
+	----------------------------------------------------------
+	1    0.80 (0.04) 590.60 (40.21) 262.92 (25.62) 528.29
+	2    4.82 (0.11) -35.69 (0.49)  31.23 (0.50) 377.43
+	3   33.06 (0.20)  -0.93 (0.08)   4.53 (0.05) 375.46
+	4   11.02 (0.13) -45.20 (0.07)   6.81 (0.10) 187.98
+	5    6.24 (0.42)  -9.68 (0.28)   3.36 (0.18)  52.58
+	6    3.91 (0.18) -30.00 (0.11)   2.14 (0.12)  20.96
+	----------------------------------------------------------
+	RMS = 0.202
+	Noise = 0.250
+	dt = 1.8 sec
+	
+	Count = 3
+	Last/Current Position = (368,8)
+	Neighbors (position)  visited  better  redo
+	P1 (  369,    8)        1        0     True
+	P2 (  368,    9)        0       -1    False
+	P3 (  367,    8)        0       -1    False
+	P4 (  368,    7)        0       -1    False
+	
+	Fitting Gaussians to the HI spectrum at (369,8)
+	REDO FORWARD
+	Zero-velocity region INCLUDED.  Fitting it separately
+	Attempting to remove small Gaussians
+	Attempting to remove small Gaussians
+	----------------------------------------------------------
+	#       Height         Center         Width       Area
+	----------------------------------------------------------
+	1   29.60 (0.23)  -2.44 (0.05)   5.77 (0.04) 428.43
+	2    4.54 (0.15) -34.18 (0.71)  31.46 (0.59) 357.99
+	3   10.24 (0.49) -43.71 (0.30)   4.66 (0.34) 119.56
+	4    4.11 (0.39) -55.35 (1.20)   5.76 (0.75)  59.36
+	5    3.89 (0.26) -31.85 (0.38)   3.66 (0.35)  35.66
+	6    8.63 (0.30)   0.97 (0.05)   1.63 (0.07)  35.21
+	7    0.83 (0.02) 590.60 (18.42) 251.09 (11.13) 519.35
+	----------------------------------------------------------
+	RMS = 0.107
+	Noise = 0.217
+	dt = 1.6 sec
+
+	
+
+Running IDL |gaussdecomp|
+=========================
 
 The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small `GASS <https://www.atnf.csiro.au/research/GASS/index.html>`_ (`McClure-Griffiths et al. 2009 <https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M>`_) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters:
 
@@ -205,8 +332,12 @@ Here's a simple figure just showing the total area of all the Gaussians in a giv
    IDL>str = mrdfits('../data/gass.fits.gz',1)
    IDL>ghess,str,'lon','lat',dx=1,dy=1,/total,/log
 
-![Coldens map](coldens_map.png)
 
+.. |coldensmap| image:: coldens_map.png
+  :width: 800
+  :alt: Column Density Map
+
+|coldensmap|
 
 Now let's plot the velocity of the Gaussian versus one of the coordinates and color-coded by the total area.
 
@@ -215,10 +346,11 @@ Now let's plot the velocity of the Gaussian versus one of the coordinates and co
    IDL>ghess,str,'lon','cen',dx=1,dy=1,/total,/log
 
 
-.. |Velocity versus longitude| image:: cenlon.png
-  :width: 400
+.. |cenlon| image:: cenlon.png
+  :width: 800
   :alt: Velocity versus longitude
 
+|cenlon|
 
 And, finally, we can also plot the distribution of the other Gaussian parameters.  Height versus sigma width.
 
@@ -226,6 +358,10 @@ And, finally, we can also plot the distribution of the other Gaussian parameters
 		
    IDL>ghess,str,'sig','ht',dx=0.2,dy=0.2
 
-.. |Height versus Sigma| image:: htsig.png
-  :width: 400
+   
+.. |htsig| image:: htsig.png
+  :width: 800
   :alt: Height versus Sigma
+
+|htsig|
+	

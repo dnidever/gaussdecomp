@@ -363,12 +363,12 @@ def gbetter(res1,res2):
 
     # One is bad, second is better
     if par1 is None:
-        return 1
+        return -1
     
     # Two is bad, first is better    
     if par2 is None:
-        return 0
-
+        return -1
+    
     drms1 = rms1-noise1 
     drms2 = rms2-noise2 
     n1 = len(par1)/3 
@@ -496,9 +496,14 @@ def gfind(x,y,xr=None,yr=None):
     
     # Looking for the position 
     t0 = time.time() 
-    # XSTART/YSTART has a value for each position, faster searching 
-    #  use NGAUSS and INDSTART to get the indices into DATA
+    # Check GSTRUC
     pind, = np.where((GSTRUC['x']==x) & (GSTRUC['y']==y))
+    # Check if it was visited before but no good spectrum/solution
+    if len(pind)==0:
+        bind, = np.where((BTRACK['x']==x) & (BTRACK['y']==y))
+        # Found it
+        if len(bind)>0:
+            return 1,{'par':None,'rms':np.inf,'noise':None}
     
     # Found something, getting the values 
     if len(pind) > 0:
@@ -809,7 +814,9 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     bb = [b1,b2,b3,b4]
     rr = [red1,red2,red3,red4]
     
-    # Printing out the info 
+    # Printing out the info
+    if count>0:
+        print(' ')
     print('Count = %d' % count)
     print('Last/Current Position = (%d,%d)' %(x,y))
     print('Neighbors (position)  visited  better  redo')
@@ -1214,13 +1221,11 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     -------
     gstruc : list
       List of all the gaussians found.
-    btrack : list
-      List that keeps track of every move. 
 
     Example
     -------
 
-    gstruc,btrack = driver(cube)
+    gstruc = driver(cube)
 
     Created by David Nidever April 2005 
     Translated to python by D. Nidever, March 2022
@@ -1405,8 +1410,6 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             # No good spectrum 
             if spec is None or np.sum(spec.flux)==0:
                 print('No spectrum to fit')
-                rms = None
-                noise = None
                 skip = True
                 count += 1
                 btrack_add(track)
@@ -1457,7 +1460,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
  
                 # RUNNING GAUSSFITTER ON ZERO VELOCITY REGION, WITH GUESS 
                 v0results = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,initpar=guesspar,silent=True,noplot=True)            
- 
+                
                 # FIT WITH NO GUESS (if first time and previous fit above with guess) 
                 tp0,tres0 = gfind(x,y,xr=xr,yr=yr) 
                 if (tp0 == 0) and (guesspar is not None):
@@ -1466,19 +1469,18 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     # The fit without the guess is better 
                     if (b == 1):
                         v0results = v0results_noguess.copy()
- 
+                        
                 # ADDING THE BEST RESULTS TO THE STRUCTURE, TSTR1
                 if v0results['par'] is not None:
                     ngauss = len(v0results['par'])//3
                     tstr1 = gstruc_dict.copy()
-                    tstr1['par'] = v0results['par']
-                    tstr1['sigpar'] = v0results['sigpar']
+                    for n in ['par','sigpar','rms']:
+                        tstr1[n] = v0results[n]                                        
                     tstr1['x'] = x 
-                    tstr1['y'] = y 
+                    tstr1['y'] = y
+                    tstr1['noise'] = spec.noise                    
                     tstr1['lon'] = lon
                     tstr1['lat'] = lat
-                    tstr1['rms'] = v0results['rms'] 
-                    tstr1['noise'] = spec.noise
                 else:
                     tstr1 = {'par':None}
                     
@@ -1503,7 +1505,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                         if len(guesspar2)==0:
                             guesspar2 = None
  
-                
+                            
                 # RUNNING GAUSSFITTER ON EVERYTHING WITHOUT THE ZERO-VELOCITY REGION, WITH GUESS 
                 results = fitter.gaussfitter(inspec,initpar=guesspar2,noplot=True,silent=True)
             
@@ -1520,13 +1522,13 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 if results['par'] is not None:
                     ngauss = len(results['par'])//3 
                     tstr2 = gstruc_dict.copy()
-                    tstr2['par'] = results['par']
-                    tstr2['sigpar'] = results['sigpar']
+                    for n in ['par','sigpar','rms']:
+                        tstr2[n] = results[n]               
                     tstr2['x'] = x 
-                    tstr2['y'] = y 
+                    tstr2['y'] = y
+                    tstr2['noise'] = spec.noise
                     tstr2['lon'] = lon 
-                    tstr2['lat'] = lat 
-                    tstr2['noise'] = spec.noise 
+                    tstr2['lat'] = lat
                 else:
                     tstr2 = {'par':None}
                     
@@ -1548,7 +1550,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr['lat'] = lat 
                     tstr['rms'] = np.inf
                     tstr['noise'] = spec.noise 
-
+                    
                         
             # Does NOT cover zero-velocity region
             #====================================
@@ -1570,17 +1572,18 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 if results['par'] is not None:
                     ngauss = len(results['par'])//3
                     tstr = gstruc_dict.copy()
+                    for n in ['par','sigpar','rms']:
+                        tstr[n] = results[n]                    
                     tstr['x'] = x
                     tstr['y'] = y
-                    for n in ['par','sigpar','rms','noise']:
-                        tstr[n] = results[n]
+                    tstr['noise'] = spec.noise
                     tstr['lon'] = lon 
                     tstr['lat'] = lat 
                 else:
                     tstr = {'par':None}
                     
                 
-            print('fitting ',time.time()-t0)
+
  
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
             if tstr['par'] is not None:
@@ -1608,15 +1611,10 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     # This is a re-decomposition 
                     if (old==1) and redo: 
                         # Checking the two decompositions 
-                        #par2 = tstr['par']  # new one 
-                        #rms2 = tstr['rms']
-                        #b = gbetter({'par':par2,'rms':rms2,'noise':noise2},{'par':par1,'rms':rms1,'noise':noise1})
                         b = gbetter(tstr,res1)
                         # New one is better 
                         if (b == False): 
                             gstruc_replace(tstr)  # replacing the solution
-                            t1 = time.time() 
-                            print(time.time()-t1)
                             redo_fail = False
                         else: # re-decomposition failed 
                             redo_fail = True
@@ -1626,9 +1624,9 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     if (old==0) or (redo == False): 
                         t1 = time.time()
                         gstruc_add(tstr)
-                        print('gstruc ',time.time()-t1)
                         redo_fail = False
- 
+
+
         # SKIP FITTING PART
         else: 
             # Creating a dummy structure 
@@ -1645,8 +1643,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         if tstr['par'] is not None:
             npar = len(tstr['par'])
             track['par'] = tstr['par']
-            track['rms'] = rms
-            track['noise'] = noise             
+            track['rms'] = tstr['rms']
+            track['noise'] = tstr['noise']
         else:
             npar = 0
         track['redo_fail'] = redo_fail 
@@ -1660,7 +1658,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         lastx = x 
         lasty = y 
  
-        print('This iteration ',time.time()-t00)
+        print('dt = %.1f sec ' % (time.time()-t00))
  
         # SAVING THE STRUCTURES, periodically
         if count % savestep == 0:
@@ -1672,7 +1670,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     print('Saving data to ',file)
     gstruc = savedata(outfile)
  
-    print('dt = ',str(time.time()-tstart,2),' sec.')
+    print('Total time = ',str(time.time()-tstart,2),' sec.')
 
     return gstruc
 

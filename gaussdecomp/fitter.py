@@ -269,8 +269,12 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                 utils.printgpar(fpar,sigpar,len(fpar)//3,rms,noise,chisq,success)
                 sleep(1.5)
  
-        # Adding the gaussian with the lowest rms 
-        gdi = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))[0][0]
+        # Adding the gaussian with the lowest rms
+        try:
+            gdi = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))[0][0]
+        except:
+            print('fitter problem')
+            import pdb; pdb.set_trace()
         par0 = pararr2[gdi,:]
         npar0 = len(par0) 
         sigpar = sigpararr2[gdi,:]
@@ -299,7 +303,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         rms0 = rms 
  
         count += 1
-
+        
       
     if silent is False:
         print(' Addition of Gaussians ',time.time()-addt0,' sec')
@@ -347,28 +351,26 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
  
     orig_par0 = par0 
     nrefit = int(np.ceil(ngauss/2))
+    if ngauss==1:
+        nrefit = 0
  
     weights = np.ones(npts,float)
     rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2.)/(npts-1)) 
- 
-    # Looping through the smallest 1/2 
+    
+    # Loop through the smallest 1/2 
     for i in range(nrefit): 
         ig = ngauss-i-1 
-        tpar = par0 
- 
+        tpar = np.copy(par0)
         # Remove the gaussian in question
         todel = np.arange(3)+ig*3
-        if len(todel)==len(tpar):  # all gone
-            return noresults
         tpar = np.delete(tpar,todel)
- 
         # Finding the best fit
         fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
-            
         drms = rms-rms0 
-        # remove the gaussian 
-        if (drms/rms0 < 0.02): 
-            par0 = fpar 
+        # Remove the gaussian 
+        if (drms/rms0 < 0.02):
+            print('removing gaussian')
+            par0 = fpar
             rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2)/(npts-1))
             # saving the results of the fit 
             #  without this gaussian 
@@ -376,7 +378,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             rms00 = rms 
             chisq00 = chisq 
             success00 = success
- 
+            
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
  

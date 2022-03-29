@@ -163,7 +163,7 @@ def gremove(par,x,y):
     npar = len(par) 
     ngauss = npar//3 
      
-    orig_par = par 
+    orig_par = np.copy(par)
     fpar = None
      
     for i in range(ngauss): 
@@ -180,14 +180,14 @@ def gremove(par,x,y):
         # Using PARCHECK.PRO
         flag = 0
         flag = parcheck(x,y,ipar)
-    
+        
         # If everything's fine add them to the final parameters
         if flag==0:
             if fpar is not None:
                 fpar = np.hstack((fpar,ipar))
             else:
-                fpar = ipar
-
+                fpar = np.copy(ipar)
+                
     return fpar
 
 def gremdup(pararr,v):
@@ -379,7 +379,6 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,success=None):
     if success is not None:
         if success==False:
             print('Fitting was NOT SUCCESSFUL')
-    print('')
 
 def gpeak1(spec,top):     
     # Gets peaks 
