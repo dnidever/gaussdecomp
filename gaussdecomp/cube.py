@@ -14,6 +14,7 @@ import warnings
 import copy
 from scipy import sparse
 from scipy.interpolate import interp1d
+from astropy import units
 from astropy.io import fits
 from astropy.wcs import WCS
 from dlnpyutils import utils as dln
@@ -34,9 +35,11 @@ class Cube:
             self.shape = data.shape
         else:
             self.shape = None
-        self.header = header
+        self.header = copy.deepcopy(header)
         if self.header is not None:
-            self.wcs = WCS(header)
+            self.wcs = WCS(self.header)
+        else:
+            self.wcs = None
         if vdim is not None:
             self.vdim = vdim
         if header is not None and vdim is None:
@@ -50,6 +53,13 @@ class Cube:
             crval = header.get('crval'+str(self.vdim+1))
             crpix = header.get('crpix'+str(self.vdim+1))
             vel = crval + cdelt * (np.arange(naxis)+1-crpix)
+            self.vunit = units.km/units.s  # assume km/s
+            # Convert from m/s to km/s
+            vunit = self.header.get('CUNIT'+str(self.vdim+1))
+            if vunit is not None:
+                if vunit.lower().strip()=='m/s':
+                    vel /= 1e3
+                    self.vunit = units.km/units.s
             self.vel = vel
             self.nvel = naxis
         else:
@@ -61,22 +71,12 @@ class Cube:
             left = np.delete(left,self.vdim)
             self.xdim = left[0]
             naxis1 = header.get('naxis'+str(self.xdim+1))            
-            #ctype1 = header.get('ctype'+str(self.xdim+1))
-            #cdelt1 = header.get('cdelt'+str(self.xdim+1))
-            #crval1 = header.get('crval'+str(self.xdim+1))
-            #crpix1 = header.get('crpix'+str(self.xdim+1))
-            #x = crval1 + cdelt1 * (np.arange(naxis1)+1-crpix1)
             x = np.arange(naxis1).astype(int)
             self.x = x
             self.nx = len(x)
             #self.xtype = ctype1
             self.ydim = left[1]            
             naxis2 = header.get('naxis'+str(self.ydim+1))
-            #ctype2 = header.get('ctype'+str(self.ydim+1))            
-            #cdelt2 = header.get('cdelt'+str(self.ydim+1))
-            #crval2 = header.get('crval'+str(self.ydim+1))
-            #crpix2 = header.get('crpix'+str(self.ydim+1))
-            #y = crval2 + cdelt2 * (np.arange(naxis2)+1-crpix2)
             y = np.arange(naxis2).astype(int)
             self.y = y
             self.ny = len(y)
@@ -91,16 +91,16 @@ class Cube:
         
     def __repr__(self):
         out = self.__class__.__name__
-        #out = self.__class__.__name__ + '('        
-        #out += 'N=%d, %.2f < V < %.2f\)n' % \
-        #       (self.n,self.vrange[0],self.vrange[1])
+        if self.data is not None:
+            out += '([%d,%d,%d], %.2f < V < %.2f)\n' % \
+                   (self.shape[0],self.shape[1],self.shape[2],self.vel[0],self.vel[-1])
         return out
 
     def __str__(self):
-        out = self.__class__.__name__        
-        #out = self.__class__.__name__ + '('
-        #out += 'N=%d, %.2f < V < %.2f)\n' % \
-        #       (self.n,self.vrange[0],self.vrange[1])
+        out = self.__class__.__name__
+        if self.data is not None:
+            out += '([%d,%d,%d], %.2f < V < %.2f)\n' % \
+                   (self.shape[0],self.shape[1],self.shape[2],self.vel[0],self.vel[-1])        
         return out
 
     def __call__(self,x,y):
@@ -126,8 +126,16 @@ class Cube:
                 
     def coords(self,x,y):
         """ Get the coordinates for this X/Y position."""
-        
-        return self.wcs.pixel_to_world(x,y)
+        if self.wcs is not None:
+            if self.vdim==0:
+                dum,lon,lat = self.wcs.pixel_to_world(0,x,y)
+            elif self.vdim==1:
+                lon,dum,lat = self.wcs.pixel_to_world(x,0,y)
+            elif self.vdim==2:
+                lon,lat,dum = self.wcs.pixel_to_world(x,y,0)
+            return lon.value,lat.value            
+        else:
+            return x,y
 
     def copy(self):
         """ Create a copy of the cube."""

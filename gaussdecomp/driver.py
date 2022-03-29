@@ -1412,6 +1412,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 btrack_add(track)
                 continue
 
+            lon,lat = datacube.coords(x,y)
             noise = spec.noise
             npts = spec.n
             
@@ -1474,8 +1475,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr1['sigpar'] = v0results['sigpar']
                     tstr1['x'] = x 
                     tstr1['y'] = y 
-                    #tstr1['lon'] = lon
-                    #tstr1['lat'] = lat
+                    tstr1['lon'] = lon
+                    tstr1['lat'] = lat
                     tstr1['rms'] = v0results['rms'] 
                     tstr1['noise'] = spec.noise
  
@@ -1521,8 +1522,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr2['sigpar'] = results['sigpar']
                     tstr2['x'] = x 
                     tstr2['y'] = y 
-                    #tstr2['lon'] = lon 
-                    #tstr2['lat'] = lat 
+                    tstr2['lon'] = lon 
+                    tstr2['lat'] = lat 
                     tstr2['noise'] = spec.noise 
                     
                 # ADDING THE STRUCTURES TOGETHER, TSTR = [TSTR1,TSTR2]
@@ -1539,8 +1540,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr = gstruc_dict.copy()
                     tstr['x'] = x 
                     tstr['y'] = y 
-                    #tstr['lon'] = lon 
-                    #tstr['lat'] = lat 
+                    tstr['lon'] = lon 
+                    tstr['lat'] = lat 
                     tstr['rms'] = np.inf
                     tstr['noise'] = spec.noise 
 
@@ -1569,8 +1570,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr['y'] = y
                     for n in ['par','sigpar','rms','noise']:
                         tstr[n] = results[n]
-                    #tstr['lon'] = lon 
-                    #tstr['lat'] = lat 
+                    tstr['lon'] = lon 
+                    tstr['lat'] = lat 
                 else:
                     tstr = {'par':None}
                     
