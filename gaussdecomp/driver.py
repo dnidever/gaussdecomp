@@ -1281,14 +1281,6 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     if outfile is None:
         logtime = datetime.now().strftime("%Y%m%d%H%M%S") 
         outfile = 'gaussdecomp_'+logtime+'.fits' 
-    #dum = findfile(outfile) 
-    #if dum != '': 
-    #    print('THE FILE ',outfile,' EXISTS ALREADY !!!' )
-    #    print('DO YOU WANT TO CONTINUE?')
-    #    quest='' 
-    #    read,quest 
-    #    if quest != 'y' and quest != 'yes' and quest != 'YES' and     quest != 'yes' and quest != 'Yes' : 
-    #    return
  
     # Printing out the inputs 
     print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
@@ -1348,26 +1340,11 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
          
         # STARTING WITH BTRACK, RESTORING THE LAST STATE 
         if (count == 0) and (gstruc is not None and btrack is not None):
-            import pdb; pdb.set_trace()
-            nbtrack = len(btrack) 
-            count = btrack[nbtrack-1]['count']
-            x = btrack[nbtrack-1]['x']
-            y = btrack[nbtrack-1]['y']
-            rms = btrack[nbtrack-1]['rms']
-            noise = btrack[nbtrack-1]['noise']
-            par = btrack[nbtrack-1]['par']
-            guesspar = btrack[nbtrack-1]['guesspar']
-            guessx = btrack[nbtrack-1]['guessx']
-            guessy = btrack[nbtrack-1]['guessy']
-            back = btrack[nbtrack-1]['back']
-            redo = btrack[nbtrack-1]['redo']
-            redo_fail = btrack[nbtrack-1]['redo_fail']
-            skip = btrack[nbtrack-1]['skip']
-            lastx = btrack[nbtrack-1]['lastx']
-            lasty = btrack[nbtrack-1]['lasty']
-            btrack_add(btrack)
-            gstruc_add(gstruc)
-             
+            BTRACK = btrack
+            GSTRUC = gstruc
+            count = BTRACK['count']
+            x = BTRACK['x'][count-1]
+            y = BTRACK['y'][count-1]
             count += 1 
             lastx = x 
             lastlast = y 
@@ -1403,10 +1380,6 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             import pdb; pdb.set_trace() 
         if (x == lastx) and (y == lasty): 
             import pdb; pdb.set_trace() 
-        #if count != 0: 
-        #    if (red1+red2+red3+red4 == 0) and redo: 
-        #        import pdb; pdb.set_trace() 
- 
  
         if skip: 
             print('SKIP')
@@ -1607,11 +1580,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
             if tstr['par'] is not None:
                 # Getting the rms of all the components of the whole spectrum
-                try:
-                    tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
-                except:
-                    print('rms problem')
-                    import pdb; pdb.set_trace()
+                tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
                     
                 # Printing and plotting
                 if noplot == False:
