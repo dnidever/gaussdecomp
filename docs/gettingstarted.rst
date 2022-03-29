@@ -29,6 +29,14 @@ Overview of IDL code: :ref:`IDL Overview`
 Python Overview
 ===============
 
+There are five main modules:
+
+ - :mod:`~gaussdecomp.driver`:  Decomposes all of the spectra in a datacube.
+ - :mod:`~gaussdecomp.fitter`:  Does the actual Gaussian Decomposition.
+ - :mod:`~gaussdecomp.cube`:  Contains the :class:`~gaussdecomp.cube.Cube` class for a data cube.
+ - :mod:`~gaussdecomp.spectrum`:  Contains the :class:`~gaussdecomp.spectrum.Spectrum` class for a single spectrum.
+ - :mod:`~gaussdecomp.utils`:  Various utility functions.
+
 Python code.
 
 |gaussdecomp| Classes
