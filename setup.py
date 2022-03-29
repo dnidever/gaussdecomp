@@ -11,5 +11,5 @@ setup(name='gaussdecomp',
       url='https://github.com/dnidever/gaussdecomp',
       packages=find_packages(exclude=["tests"]),
       scripts=['bin/gaussdecomp'],
-      install_requires=['numpy','astropy(>=4.0)','scipy','dlnpyutils(>=1.0.3)']
+      install_requires=['numpy','astropy(>=4.0)','scipy','dlnpyutils(>=1.0.3)','dill']
 )

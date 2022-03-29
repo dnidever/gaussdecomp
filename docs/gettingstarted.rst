@@ -37,7 +37,29 @@ There are five main modules:
  - :mod:`~gaussdecomp.spectrum`:  Contains the :class:`~gaussdecomp.spectrum.Spectrum` class for a single spectrum.
  - :mod:`~gaussdecomp.utils`:  Various utility functions.
 
-Python code.
+There is a class for data cubes called :class:`~gaussdecomp.cube.Cube` and a class for spectra called :class:`~gaussdecomp.spectrum.Spectrum`.
+
+To fit a single spectrum you first need to create the Spectrum object.
+
+.. code-block:: python
+
+	from gaussdecomp import spectrum,fitter
+	sp = spectrum.Spectrum(flux,vel)   # flux and velocity arrays
+	out = fitter.gaussfit(sp)          # do the fitting
+
+To fit an entire datacube, you can either give the driver code a datacube object you have already created or give it a FITS filename.
+
+.. code-block:: python
+
+	from gaussdecomp import cube,driver
+	# Load the cube first
+	datacube = cube.Cube.read('mycube.fits')
+	gstruc = driver.driver(datacube)
+
+	# Give it the FITS filename
+	gstruc = driver.driver('mycube.fits')
+	
+	
 
 |gaussdecomp| Classes
 ---------------------
