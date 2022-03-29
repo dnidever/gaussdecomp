@@ -169,16 +169,28 @@ The final example catalog contains 1923 Gaussians.  This is what the columns in 
 
 The columns are:
 
-Column  |  Description
------------- | -------------
-LON |  X position in the grid starting with 0.
-LAT |  Y position in the grid starting with 0.
-RMS |  RMS of the residuals.
-NOISE |  Noise level of the spectrum.
-PAR |  Gaussian parameters [height, center, sigma].
-SIGPAR |  Uncertainties in PAR.
-GLON |  Galactic longitude (or RA) for this position.
-GLAT |  Galactic latitude (or DEC) for this position.
+.. list-table:: Catalog Column Descriptions
+   :widths: 25 50
+   :header-rows: 1
+
+   * - Column
+     - Description
+   * - LON
+     - X position in the grid starting with 0
+   * - LAT
+     - Y position in the grid starting with 0
+   * - RMS
+     - RMS of the residuals
+   * - NOISE
+     - Noise level of the spectrum
+   * - PAR
+     - Gaussian parameters [height, center, sigma]
+   * - SIGPAR
+     - Uncertainties in PAR
+   * - GLON
+     - Galactic longitude (or RA) for this position
+   * - GLAT
+     - Galactic latitude (or DEC) for this position
 
 
 Plotting the Results
@@ -203,7 +215,10 @@ Now let's plot the velocity of the Gaussian versus one of the coordinates and co
    IDL>ghess,str,'lon','cen',dx=1,dy=1,/total,/log
 
 
-![Velocity versus longitude](cenlon.png)
+.. |Velocity versus longitude| image:: cenlon.png
+  :width: 400
+  :alt: Velocity versus longitude
+
 
 And, finally, we can also plot the distribution of the other Gaussian parameters.  Height versus sigma width.
 
@@ -211,6 +226,6 @@ And, finally, we can also plot the distribution of the other Gaussian parameters
 		
    IDL>ghess,str,'sig','ht',dx=0.2,dy=0.2
 
-![Height versus sigma](htsig.png)
-
-
+.. |Height versus Sigma| image:: htsig.png
+  :width: 400
+  :alt: Height versus Sigma
