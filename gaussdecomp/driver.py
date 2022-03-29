@@ -245,8 +245,8 @@ def gredo(x,y,guessx,guessy,guesspar):
     guesspar : list/array
       Guess parameters 
      
-    Parameters
-    ----------
+    Returns
+    -------
     flag : boolean,
       Is this redo okay.
         True - Redo okay. This guess has not been done before 
