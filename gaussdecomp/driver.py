@@ -4,13 +4,16 @@ import os
 import time
 import numpy as np
 from datetime import datetime
+import dill as pickle
 from dlnpyutils import utils as dln
+from astropy.table import Table
+from astropy.io import fits
 from . import utils,fitter
 from .cube import Cube
 
 # Tracking lists
-BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,'ngauss':np.zeros(n,int)-1}
 n = 100000
+BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,'ngauss':np.zeros(n,int)-1}
 GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,'ngauss':np.zeros(n,int)-1}
 
 def gstruc_add(tstr):
@@ -23,6 +26,10 @@ def gstruc_add(tstr):
     # ngauss: the number of gaussians
 
     global BTRACK, GSTRUC
+
+    if type(tstr) is list:
+        print('list input')
+        import pdb; pdb.set_trace()
     
     # Add new elements
     if len(tstr)+GSTRUC['count'] > len(GSTRUC['x']):
@@ -31,15 +38,20 @@ def gstruc_add(tstr):
             GSTRUC[n] = np.hstack((GSTRUC[n],np.zeros(100000,int)-1))
     # Stuff in the new data
     count = GSTRUC['count']
-    GSTRUC['data'] += [tstr]
+    GSTRUC['data'].append(tstr)
     GSTRUC['x'][count] = tstr['x']
     GSTRUC['y'][count] = tstr['y']
     if tstr['par'] is not None:
-        GSTRUC['ngauss'][count] = tstr['par']//3
+        GSTRUC['ngauss'][count] = len(tstr['par'])//3
     else:
         GSTRUC['ngauss'][count] = 0
     GSTRUC['count'] += 1
+        
+    if type(GSTRUC['data'][-1]) is list:
+        print('problem')
+        import pdb; pdb.set_trace()
 
+    
 def gstruc_replace(tstr):
     """ Replace an old decomposition with a newer and better one."""
     # Double-check that the positions match
@@ -47,8 +59,8 @@ def gstruc_replace(tstr):
     if len(ind)==0:
         raise ValueError('No position for (%d,%d) found in GSTRUC' % (tstr['x'],tstr['y']))
     ind = ind[0]
-    GSTRUC['data'][ind] = [tstr]
-    GSTRUC['ngauss'] = len(tstr['par'])
+    GSTRUC['data'][ind] = tstr
+    GSTRUC['ngauss'][ind] = len(tstr['par'])
     
     
 def btrack_add(track):
@@ -73,7 +85,7 @@ def btrack_add(track):
     BTRACK['x'][count] = track['x']
     BTRACK['y'][count] = track['y']
     if track['par'] is not None:
-        BTRACK['ngauss'][count] = track['par']//3
+        BTRACK['ngauss'][count] = len(track['par'])//3
     else:
         BTRACK['ngauss'][count] = 0
     BTRACK['count'] += 1
@@ -349,14 +361,19 @@ def gbetter(res1,res2):
         if (len(par1) < 3) or (len(par2) < 3): 
             return better
 
+    # One is bad, second is better
+    if par1 is None:
+        return 1
+    
+    # Two is bad, first is better    
     if par2 is None:
-        return better
-     
+        return 0
+
     drms1 = rms1-noise1 
     drms2 = rms2-noise2 
     n1 = len(par1)/3 
     n2 = len(par2)/3 
-     
+        
     # Clear cut, rms better, n equal or less 
     if (drms1 < drms2) and (n1 <= n2): 
         better = 0 
@@ -482,16 +499,18 @@ def gfind(x,y,xr=None,yr=None):
     # XSTART/YSTART has a value for each position, faster searching 
     #  use NGAUSS and INDSTART to get the indices into DATA
     pind, = np.where((GSTRUC['x']==x) & (GSTRUC['y']==y))
-    #print('find ',time.time()-t0)
     
     # Found something, getting the values 
     if len(pind) > 0:
         tstr = GSTRUC['data'][pind[0]]
+        if type(tstr) is list:
+            print('list problem')
+            import pdb; pdb.set_trace()
         rms = tstr['rms']
         noise = tstr['noise']
         par = tstr['par']
         flag = 1 
-         
+            
     # Nothing found 
     else:
         pind,rms,noise,par = None,None,None,None
@@ -501,7 +520,7 @@ def gfind(x,y,xr=None,yr=None):
     return flag,results
 
 
-def gguess(x,y,xsgn=1,ysgn=1,xr=None,yr=None):
+def gguess(x,y,xr,yr,xsgn,ysgn):
     """
     This program finds the best guess for the new profile 
     The one from the backwards positions. 
@@ -509,25 +528,35 @@ def gguess(x,y,xsgn=1,ysgn=1,xr=None,yr=None):
      
     Parameters
     ----------
-    x      X of current position 
-    y      Y of current position 
-    xsgn   Sign of x increment 
-    ysgn   Sign of y increment 
-    xr     Two element array of x limits 
-    yr     Two element array of y limits 
+    x : int
+      X of current position 
+    y : int
+      Y of current position 
+    xr : list
+      Two element array of x limits 
+    yr : list
+      Two element array of y limits 
+    xsgn : int
+      Sign of x increment 
+    ysgn : int
+      Sign of y increment 
+
      
     Returns
     -------
-    guesspar  The first guess gaussian parameters 
-    guessx  The x of the position where the 
-                   guess parameters came from 
-    guessy  The y of the position where the 
-                   guess parameters came from 
+    guesspar : numpy array
+      The first guess gaussian parameters 
+    guessx : int
+      The x of the position where the 
+        guess parameters came from 
+    guessy : ijnt
+      The y of the position where the 
+        guess parameters came from 
      
     When this program has problems it returns: 
-      guesspar = 999999. 
-      guessx = 999999. 
-      guessy = 999999. 
+      guesspar = None
+      guessx = None 
+      guessy = None
      
     Created by David Nidever April 2005 
     Translated to python by D. Nidever, March 2022
@@ -551,15 +580,13 @@ def gguess(x,y,xsgn=1,ysgn=1,xr=None,yr=None):
     orig_y = y 
 
     if xr is None:
-        xr = [0.,359.5]
+        xr = [0.,2000]
     if yr is None:
-        yr = [-90.,90.] 
+        yr = [0,2000] 
      
-    # Is the x range continuous?? 
-    if (xr[0] == 0.) and (xr[1] == 359.5): 
-        cont = 1 
-    else: 
-        cont = 0 
+    # Is the x range continuous??
+    # Assume not continuous in general
+    cont = 0 
      
     # getting the p3 and p4 positions 
     # P3 back in x (l-0.5), same y 
@@ -670,15 +697,19 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
       New position is a redo.
     skip : boolean
       Skip the next position.
+    endflag : boolean
+      Whether to end of now.
 
     Example
     -------
 
-    newx,newy,guessx,guessy,guesspar,redo,skip = nextmove(x,y,xr,yr,count,redo=redo,redo_fail=redo_fail,back=back)
+    newx,newy,guessx,guessy,guesspar,redo,skip,endflag = nextmove(x,y,xr,yr,count,redo=redo,redo_fail=redo_fail,back=back)
 
     """
 
     global BTRACK, GSTRUC
+
+    endflag = False
 
 
     # If back, redo and BACKRET=1 then return to pre-redo position
@@ -702,7 +733,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         # back position better, redo pre-redo position 
         if (b==0) and redo: 
             # Getting the guess 
-            guesspar,guessx,guessy = gguess(x,y,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr)
+            guesspar,guessx,guessy = gguess(x,y,xr,yr,xsgn,ysgn)
             redo = True
             skip = False
         # back position worse, or can't redo pre-position, skip 
@@ -725,6 +756,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
     # Some default values
     skip = False
+    newx,newy = None,None
     guesspar,guessx,guessy = None,None,None
 
     
@@ -826,10 +858,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
             #------------------------------
             if (b3==0) and redo: 
                 newx,newy = x3,y3
-                back = True   # moving backwards 
-                guesspar = par0
-                guessx = x 
-                guessy = y 
+                back = True   # moving backwards
+                guessx,guessy,guesspar = x,y,par0
             else: 
                 back = False
                 redo = False
@@ -930,10 +960,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
         # This is the very end 
         if (x1 is None): 
-            flag = 1
-            print('We have reached the very end')
-            #goto, BOMB
-            import pdb; pdb.set_trace()
+            endflag = True
+            return newx,newy,guessx,guessy,guesspar,False,False,endflag
 
         back = False  # moving forward 
 
@@ -950,7 +978,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
             if (b1==0) and redo1: 
                 newx,newy = x1,y1
                 # getting the guess 
-                guesspar,guessx,guessy = gguess(x,y,xr,yr,xsgn=xsgn,ysgn=ysgn)
+                guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
             # Can't redo P1, or P1 better than P0, move another step ahead 
             else: 
                 newx,newy = x1,y1
@@ -1038,7 +1066,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
             # Getting the guess 
             if redo:  # redo 
                 # Getting the new guess from backward positions 
-                gguesspar,guessx,guessy = gguess(newx,newy,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr)
+                gguesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
 
         # Neither has been visited before, increment
@@ -1047,17 +1075,71 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
             # Increment to P1
             newx,newy = x1,y1
             # Getting the guess 
-            guesspar,guessx,guessy = gguess(newx,newy,xsgn=xsgn,ysgn=ysgn,xr=xr,yr=yr)
+            guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
 
-    return newx,newy,guessx,guessy,guesspar,redo,skip
+    # No new position determined yet, move forward to P1
+    if newx is None or newy is None:
+        # Increment to P1
+        newx,newy = x1,y1
+        # Getting the guess 
+        guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
+
+        
+    try:
+        dumx,dumy = newx,newy
+    except:
+        print('problem')
+        import pdb; pdb.set_trace()
+            
+
+    return newx,newy,guessx,guessy,guesspar,redo,skip,endflag
 
 
+def savedata(outfile):
+    """ Save the data to files."""
 
-def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
-           plotxr=None,xsgn=1,ysgn=1,xr=None,yr=None,trackplot=False,
-           noback=False,backret=True,gstruc=None,btrack=None,savestep=None,
-           gassnum=None,subcube=None,wander=False,clobber=False):
+    global BTRACK, GSTRUC
+    
+    print('SAVING DATA to '+outfile)
+
+    # Write tracking structures to pickle file
+    picklefile = outfile.replace('.fits','.pkl')
+    with open(picklefile, 'wb') as f:
+        pickle.dump(BTRACK, f)
+        pickle.dump(GSTRUC, f)                    
+
+    # Construct gstruc output structure
+    count = GSTRUC['count']
+    ngauss = np.sum(GSTRUC['ngauss'][0:count])
+    dtype = np.dtype([('x',int),('y',int),('par',float,3),('sigpar',float,3),('rms',float),
+                      ('noise',float),('lon',float),('lat',float)])
+    gstruc = np.zeros(ngauss,dtype=dtype)
+    cnt = 0
+    for i in range(count):
+        tstr1 = GSTRUC['data'][i]
+        ngauss1 = GSTRUC['ngauss'][i]
+        gstruc1 = np.zeros(ngauss1,dtype=dtype)
+        gstruc1['x'] = tstr1['x']
+        gstruc1['y'] = tstr1['y']
+        gstruc1['lon'] = tstr1['lon']
+        gstruc1['lat'] = tstr1['lat']        
+        gstruc1['rms'] = tstr1['rms']
+        gstruc1['noise'] = tstr1['noise']        
+        gstruc1['par'] = tstr1['par'].reshape(ngauss1,3)
+        gstruc1['sigpar'] = tstr1['sigpar'].reshape(ngauss1,3)
+        gstruc[cnt:cnt+ngauss1] = gstruc1
+        cnt += ngauss1
+    gstruc = Table(gstruc)
+    gstruc.write(outfile,overwrite=True)
+    print(str(len(gstruc))+' gaussians')
+
+    return gstruc
+    
+def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
+           plotxr=None,trackplot=False,noplot=True,silent=False,
+           noback=False,backret=True,wander=False,gstruc=None,btrack=None,
+           savestep=100,clobber=False):
     """
     This program runs the gaussian fitting program 
     on a large part of the HI all sky survey 
@@ -1071,7 +1153,7 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
              move in a forward direction until it is finished.  Therefore 
              there is essentially no re-decomposition of positions. 
              To use this mode set noback=True on the command line. 
-    wanter: The program is allowed to go backwards and forwards (Haud's 
+    wander: The program is allowed to go backwards and forwards (Haud's 
              original algorithm).  If it goes back in y and only 
              the forward x position has been visited before then 
              it will need to go through all x positions before 
@@ -1111,7 +1193,7 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
     trackplot : boolean, optional
       Track the progression visually 
     noplot : boolean, optional
-      Don't plot anything.
+      Don't plot anything.  Default is True.
     silent : boolean, optional
       Don't print anything 
     noback : boolean, optional
@@ -1125,7 +1207,12 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
        List of gaussians to start with.
     btrack : list, optional
        Tracking structure to start with.
-     
+    savestep : int, optional
+       Number of steps to save on.  Default is 100.
+    clobber : boolean, optional
+       Overwrite any existing files.  Default is False.
+
+
     Returns
     -------
     gstruc : list
@@ -1144,7 +1231,7 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
 
     global BTRACK, GSTRUC
     
-    flag = 0 
+    endflag = False
     count = 0
     tstart = time.time() 
 
@@ -1242,10 +1329,10 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
                   'guesspar':None,'guessx':None,'guessy':None,'back':None,'redo':None,
                   'redo_fail':None,'skip':None,'lastx':None,'lasty':None}
     gstruc_dict = {'x':None,'y':None,'rms':None,'noise':None,'par':None,
-                   'sigpar':None,'long':None,'lat':None}
+                   'sigpar':None,'lon':None,'lat':None}
      
     # STARTING THE LARGE LOOP 
-    while (flag == 0): 
+    while (endflag == False): 
          
         t00 = time.time() 
          
@@ -1290,15 +1377,9 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
         #------------------------- 
         if (count > 0):
             lastx,lasty = x,y
-            x,y,guessx,guessy,guesspar,redo,skip = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
-                                                            wander=wander,redo=redo,back=back,redo_fail=redo_fail)
+            x,y,guessx,guessy,guesspar,redo,skip,endflag = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
+                                                                    wander=wander,redo=redo,back=back,redo_fail=redo_fail)
 
-
-        # MAYBE KEEP THE BTRACK AND GSTRUC *IN* THE CUBE OBJECT!!!!
-
-        #import pdb; pdb.set_trace()
-        
- 
         # Starting the tracking structure, bad until proven good
         track = track_dict.copy()
         track['count'] = count 
@@ -1355,7 +1436,6 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
                 noise = None
                 skip = True
                 count += 1
-                gstruc_add(tstr)
                 btrack_add(track)
                 continue
 
@@ -1371,150 +1451,138 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
                 dum,vindcen = dln.closest(spec.vel,0)
             
                 # Finding the vel. low point 
-                flag = 0 
+                lflag = 0 
                 i = vindcen
                 lo = 0
-                while (flag == 0): 
+                while (lflag == 0): 
                     if smspec[i] <= noise: 
                         lo = i 
                     if smspec[i] <= noise: 
-                        flag = 1
+                        lflag = 1
                     i -= 1 
                     if i < 0: 
-                        flag = 1 
+                        lflag = 1 
                 lo = np.maximum(0,(lo-20))
  
                 # Finding the vel. high point 
-                flag = 0 
+                hflag = 0 
                 i = vindcen
                 hi = npts-1
-                while (flag == 0): 
+                while (hflag == 0): 
                     if smspec[i] <= noise : 
                         hi = i 
                     if smspec[i] <= noise : 
-                        flag = 1 
+                        hflag = 1 
                     i += 1 
                     if i > npts-1: 
-                        flag = 1 
+                        hflag = 1 
                 hi = np.minimum((npts-1),(hi+20))
  
                 vmin = spec.vel[lo] 
                 vmax = spec.vel[hi] 
  
                 # RUNNING GAUSSFITTER ON ZERO VELOCITY REGION, WITH GUESS 
-                results = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,initpar=guesspar,silent=True,noplot=True)            
+                v0results = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,initpar=guesspar,silent=True,noplot=True)            
  
                 # FIT WITH NO GUESS (if first time and previous fit above with guess) 
-                tp0 = gfind(x,y,xr=xr,yr=yr) 
+                tp0,tres0 = gfind(x,y,xr=xr,yr=yr) 
                 if (tp0 == 0) and (guesspar is not None):
-                    results2 = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,silent=True,noplot=True)
-                    #tpar0,tsigpar0,trms,noise,v2,spec2,resid2 = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,silent=True,noplot=True)
-                    #b = gbetter({'par':par0,'rms':rms,'noise':noise},{'par':tpar0,'rms':trms,'noise':noise})
+                    v0results_noguess = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,silent=True,noplot=True)
                     b = gbetter(results,results2)
                     # The fit without the guess is better 
-                    if (b == 1): 
-                        par0 = tpar0 
-                        sigpar0 = tsigpar0 
-                        rms = trms 
+                    if (b == 1):
+                        v0results = v0results_noguess.copy()
  
-                # ADDING THE BEST RESULTS TO THE STRUCTURE, TSTR1 
-                if (par0(0) != -1): 
-                    ngauss = len(par0)/3
-                    tstr1 = replicate(gstruc_schema,ngauss) 
-                    for i in range(ngauss): 
-                        tstr1[i].par = par0[3*i:3*i+3]
-                        tstr1[i].sigpar = sigpar0[3*i:3*i+3]
+                # ADDING THE BEST RESULTS TO THE STRUCTURE, TSTR1
+                if v0results['par'] is not None:
+                    ngauss = len(v0results['par'])//3
+                    tstr1 = gstruc_dict.copy()
+                    tstr1['par'] = v0results['par']
+                    tstr1['sigpar'] = v0results['sigpar']
                     tstr1['x'] = x 
-                    tstr1['y '] = y 
-                    tstr1['lon'] = glon 
-                    tstr1['lat'] = gy 
-                    #tstr1['rms'] = rms 
-                    tstr1['noise'] = noise 
+                    tstr1['y'] = y 
+                    #tstr1['lon'] = lon
+                    #tstr1['lat'] = lat
+                    tstr1['rms'] = v0results['rms'] 
+                    tstr1['noise'] = spec.noise
  
-                # REMOVING ZERO-VELOCITY parameters and spectrum 
-                if par0[0] != -1: 
-                    th = gfunc(v,par0) 
-                    inspec = spec-th 
-                    inv = v 
-                    npts = len(v) 
+                # REMOVING ZERO-VELOCITY parameters and spectrum
+                guesspar2 = None
+                inspec = spec.copy()
+                if v0results['par'] is not None:
+                    th = utils.gfunc(spec.vel,*v0results['par'])
+                    inspec = spec.copy()
+                    inspec.flux -= th
+                    npts = spec.n
                     if guesspar is not None:
-                        inpar1 = guesspar 
-                        inpar2 = guesspar 
-                        inpar1 = gremove(inpar1,v[0:lo],spec[0:lo]) 
-                        inpar2 = gremove(inpar2,v[hi:npts],spec[hi:npts])
-                        guesspar2 = np.hstack((inpar1,inpar2))
-                        gd, = np.where(guesspar2 != -1,ngd) 
-                        if (len(gd) == 0):  # no guess 
+                        guesspar2 = np.array([],float)
+                        inpar1 = np.copy(guesspar)
+                        inpar2 = np.copy(guesspar)
+                        inpar1 = utils.gremove(inpar1,spec.vel[0:lo],spec.flux[0:lo])
+                        if inpar1 is not None:
+                            guesspar2 = np.hstack((guesspar2,inpar1))
+                        inpar2 = utils.gremove(inpar2,spec.vel[hi:npts],spec.flux[hi:npts])
+                        if inpar2 is not None:
+                            guesspar2 = np.hstack((guesspar2,inpar2))
+                        if len(guesspar2)==0:
                             guesspar2 = None
-                            guesspar2 = guesspar2[gd]
-                else: 
-                    inspec = spec 
-                    inv = v 
  
                 
                 # RUNNING GAUSSFITTER ON EVERYTHING WITHOUT THE ZERO-VELOCITY REGION, WITH GUESS 
-                #par0,sigpar0,rms,noise,v3,spec3,resid3 = fitter.gaussfitter(inv,inspec,initpar=guesspar2,silent=True,noplot=True)
-                results3 = fitter.gaussfitter(inv,inspec,initpar=guesspar2,noplot=True,silent=True)
+                results = fitter.gaussfitter(inspec,initpar=guesspar2,noplot=True,silent=True)
             
  
                 # FIT WITH NO GUESS (if first time and previous fit above with guess) 
-                if (tp0 == 0) and (len(guesspar) > 1):
-                    #tpar0,tsigpar0,trms,noise,v3,spec3,resid3 = fitter.gaussfitter(inv,inspec,silent=True,noplot=True)
-                    results4 = fitter.gaussfitter(inv,inspec,silent=True,noplot=True)                    
-                    #b = gbetter({'par':par0,'rms':rms,'noise':noise},{'par':tpar0,'rms':trms,'noise':noise})
+                if (tp0 == 0) and (guesspar is not None):
+                    results_noguess = fitter.gaussfitter(inspec,silent=True,noplot=True)                    
                     b = gbetter(results3,results4)
                     # The fit without the guess is better 
                     if (b == 1):
-                        results = results4.copy()
-                    else:
-                        results = results3.copy()
-
-
+                        results = results_noguess.copy()
  
-                # ADDING THE RESULTS TO THE STRUCTURE, TSTR2 
-                if par0(0) != -1: 
-                    ngauss = len(par0)/3 
-                    tstr2 = replicate(gstruc_schema,ngauss) 
-                    for i in range(ngauss): 
-                        tstr2[i].par = par0[3*i:3*i+3]
-                        tstr2[i].sigpar = sigpar0[3*i:3*i+3]
+                # ADDING THE RESULTS TO THE STRUCTURE, TSTR2
+                if results['par'] is not None:
+                    ngauss = len(results['par'])//3 
+                    tstr2 = gstruc_dict.copy()
+                    tstr2['par'] = results['par']
+                    tstr2['sigpar'] = results['sigpar']
                     tstr2['x'] = x 
                     tstr2['y'] = y 
-                    tstr2['lon'] = lon 
-                    tstr2['lat'] = lat 
-                    tstr2['noise'] = noise 
- 
+                    #tstr2['lon'] = lon 
+                    #tstr2['lat'] = lat 
+                    tstr2['noise'] = spec.noise 
+                    
                 # ADDING THE STRUCTURES TOGETHER, TSTR = [TSTR1,TSTR2]
                 if tstr1 is not None and tstr2 is not None:
-                    tstr = [tstr1,tstr2]
+                    tstr = tstr1.copy()
+                    tstr['par'] = np.hstack((tstr1['par'],tstr2['par']))
+                    tstr['sigpar'] = np.hstack((tstr1['sigpar'],tstr2['sigpar']))
+                    tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
                 if tstr1 is not None and tstr2 is None:
-                    tstr = tstr1
+                    tstr = tstr1.copy()
                 if tstr1 is None and tstr2 is not None:
-                    tstr = tstr2
+                    tstr = tstr2.copy()
                 if tstr1 is None and tstr2 is None:  # no gaussians
                     tstr = gstruc_dict.copy()
                     tstr['x'] = x 
                     tstr['y'] = y 
-                    tstr['lon'] = lon 
-                    tstr['lat'] = lat 
-                    tstr['rms'] = rms 
-                    tstr['noise'] = noise 
+                    #tstr['lon'] = lon 
+                    #tstr['lat'] = lat 
+                    tstr['rms'] = np.inf
+                    tstr['noise'] = spec.noise 
 
                         
             # Does NOT cover zero-velocity region
             #====================================
             else:
                 print('Zero-velocity NOT covered')
-                invspec = spec.copy()
-
                 # RUNNING GAUSSFITTER ON EVERYTHING WITH GUESS 
-                results = fitter.gaussfitter(invspec,initpar=guesspar,noplot=True)    #silent=True)            
-            
+                results = fitter.gaussfitter(spec,initpar=guesspar,noplot=True)    #silent=True)            
+                
                 # FIT WITH NO GUESS (if first time and previous fit above with guess)
-                tp0 = gfind(x,y,xr=xr,yr=yr)
+                tp0,res0 = gfind(x,y,xr=xr,yr=yr)
                 if (tp0 == 0) and (guesspar is not None):
-                    results2 = fitter.gaussfitter(invspec,silent=True,noplot=True)                    
-                    #b = gbetter({'par':par0,'rms':rms,'noise':noise},{'par':tpar0,'rms':trms,'noise':noise})
+                    results2 = fitter.gaussfitter(spec,silent=True,noplot=True)                    
                     b = gbetter(results1,results2)
                     # The fit without the guess is better 
                     if (b == 1): 
@@ -1539,24 +1607,19 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
             if tstr is not None:
                 # Getting the rms of all the components of the whole spectrum 
-                th = gfunc(v,tstr['par'])
-                rms = np.std(spec-th) 
-                tstr['rms'] = rms 
+                tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
  
                 # Printing and plotting
                 if noplot == False:
-                    utils.gplot(v,spec,tstr.par,xlim=plotxr)
+                    utils.gplot(spec.vel,spec.flux,tstr['par'],xlim=plotxr)
                 if silent == False:
-                    utils.printgpar(tstr['par'],tstr['sigpar'],
-                                    len(tstr['par'])//3,tstr['rms'],tstr['noise'])
+                    utils.printgpar(tstr['par'],tstr['sigpar'],tstr['rms'],tstr['noise'])
                 if trackplot:
                     utils.gtrackplot(x,y,lastx,lasty,redo, count,xr=xr,yr=yr,pstr=pstr,xstr=xstr,ystr=ystr)
             else:
                 if silent == False:
                     print('No gaussians found at this position!')
 
- 
-                
             # ADDING SOLUTION TO GSTRUC
             if tstr is not None:
                 if count == 0: 
@@ -1583,7 +1646,7 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
  
                     # This is NOT a re-decomposition, add it 
                     if (old==0) or (redo == False): 
-                        t1 = time.time() 
+                        t1 = time.time()
                         gstruc_add(tstr)
                         print('gstruc ',time.time()-t1)
                         redo_fail = False
@@ -1603,11 +1666,11 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
         # FINISHING UP THE TRACKING STRUCTURE
         if tstr is not None:
             npar = len(tstr['par'])
-            track['par'] = tstr['par']            
+            track['par'] = tstr['par']
+            track['rms'] = rms
+            track['noise'] = noise             
         else:
             npar = 0
-        track['rms'] = rms 
-        track['noise'] = noise 
         track['redo_fail'] = redo_fail 
  
         # UPDATING THE TRACKING STRUCTURE
@@ -1622,28 +1685,16 @@ def driver(datacube,xstart=0,ystart=0,outfile=None,silent=False,noplot=False,
         print('This iteration ',time.time()-t00)
  
         # SAVING THE STRUCTURES, periodically
-        if savestep == False:
-            savestep = 50 
-            nsave = savestep 
-            if (int(count)//int(nsave) == int(count)/float(nsave)): 
-                print('SAVING DATA!')
-                #MWRFITS,(*(!gstruc.data))[0:!gstruc.count-1],file,/create 
-                #MWRFITS,(*(!btrack.data))[0:!btrack.count-1],file,/silent# append 
-                #gstruc = !gstruc & btrack = !btrack 
-                #SAVE,gstruc,btrack,file=restore_file 
-                #undefine,gstruc,btrack 
-
-                # Pickle the btrack structure
-                         
-    # FINAL SAVE 
-    print(str(len(gstruc),2),' final Gaussians')
+        if count % savestep == 0:
+            gstruc = savedata(outfile)
+                
+    # FINAL SAVE
+    ngauss = np.sum(GSTRUC['ngauss'][0:GSTRUC['count']])
+    print(str(gauss)+' final Gaussians')
     print('Saving data to ',file)
-    #MWRFITS,(*(!gstruc.data))[0:!gstruc.count-1],file,/create 
-    #MWRFITS,(*(!btrack.data))[0:!btrack.count-1],file,/silent# append 
-    #gstruc = !gstruc & btrack = !btrack 
-    #SAVE,gstruc,btrack,file=restore_file 
-    #undefine,gstruc,btrack 
+    gstruc = savedata(outfile)
  
     print('dt = ',str(time.time()-tstart,2),' sec.')
 
+    return gstruc
 

@@ -335,7 +335,7 @@ def gfunc(x,*par,noderiv=True):
             
     return th 
 
-def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,success=None):
+def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,success=None):
     """
     Printing the gaussian parameters 
      
@@ -346,7 +346,6 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,success=
        rms      RMS of gaussian fit 
        noise    Noise level 
        chisq    Chi squared of gaussian fit 
-       niter    Number of iterations 
        success  Was the fit successful.
      
     Return
@@ -371,8 +370,6 @@ def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,niter=None,success=
         iarea = garea(ipar)
         print(' %d  %6.2f (%4.2f) %6.2f (%4.2f) %6.2f (%4.2f) %6.2f' % (i+1,ipar[0],isigpar[0],ipar[1],isigpar[1],ipar[2],isigpar[2],iarea))
     print('----------------------------------------------------------')
-    if niter is not None:
-        print('N Iter = ',str(niter))
     if chisq is not None:
         print('ChiSq = %.3f ' % chisq)
     if rms is not None:
@@ -596,7 +593,12 @@ def gfit(x,y,par,bounds=None,noise=None):
      
     Written by D. Nidever, April 2005 
     """
-                     
+
+    if par is None:
+        raise ValueError('Need good estimates to run gfit()')
+    if len(par)==0:
+        raise ValueError('Need good estimates to run gfit()')
+        
     t0 = time.time() 
     npts = len(x) 
     npar = len(par)

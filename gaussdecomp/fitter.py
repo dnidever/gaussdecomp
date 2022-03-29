@@ -86,7 +86,6 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     #----------------------------------
     finpar = None
     if initpar is not None:
-     
         print('Using First Guess Parameters')
         inpar = np.copy(initpar)     
         inpar = utils.gremove(inpar,v,y) # removing bad ones 
@@ -192,7 +191,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                         rms = np.std(resid-utils.gfunc(v,*fpar2))
                     else: 
                         rms = 999999.
-                        fpars = np.zeros(3,float)+999999.
+                        fpar2 = np.zeros(3,float)+999999.
              
                     # Adding to the rms and par arrays 
                     rmsarr[gcount] = rms 
@@ -256,7 +255,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                 par = np.hstack((par0,ipar))
             else:
                 par = np.copy(ipar)
- 
+                
             # Letting everything float 
             fpar,sigpar,rms,chisq,residuals,noise5,success5,rt5 = utils.gfit(v,y,par,noise=noise)
             npar = len(fpar)
@@ -310,7 +309,6 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         return noresults
         
     # Saving the results of the fit
-    import pdb; pdb.set_trace()
     sigpar00 = sigpar 
     rms00 = rms 
  
@@ -359,11 +357,14 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         tpar = par0 
  
         # Remove the gaussian in question
-        tpar = np.delete(tpar,np.arange(3)+ig*3)
+        todel = np.arange(3)+ig*3
+        if len(todel)==len(tpar):  # all gone
+            return noresults
+        tpar = np.delete(tpar,todel)
  
-        # Finding the best fit 
+        # Finding the best fit
         fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
- 
+            
         drms = rms-rms0 
         # remove the gaussian 
         if (drms/rms0 < 0.02): 
