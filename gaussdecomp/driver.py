@@ -60,7 +60,7 @@ def gstruc_replace(tstr):
         raise ValueError('No position for (%d,%d) found in GSTRUC' % (tstr['x'],tstr['y']))
     ind = ind[0]
     GSTRUC['data'][ind] = tstr
-    GSTRUC['ngauss'][ind] = len(tstr['par'])
+    GSTRUC['ngauss'][ind] = len(tstr['par'])//3
     
     
 def btrack_add(track):
@@ -1125,7 +1125,7 @@ def savedata(outfile):
         gstruc1['lon'] = tstr1['lon']
         gstruc1['lat'] = tstr1['lat']        
         gstruc1['rms'] = tstr1['rms']
-        gstruc1['noise'] = tstr1['noise']        
+        gstruc1['noise'] = tstr1['noise']
         gstruc1['par'] = tstr1['par'].reshape(ngauss1,3)
         gstruc1['sigpar'] = tstr1['sigpar'].reshape(ngauss1,3)
         gstruc[cnt:cnt+ngauss1] = gstruc1
@@ -1599,16 +1599,20 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     #tstr['lon'] = lon 
                     #tstr['lat'] = lat 
                 else:
-                    tstr = None
+                    tstr = {'par':None}
                     
                 
             print('fitting ',time.time()-t0)
  
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
-            if tstr is not None:
-                # Getting the rms of all the components of the whole spectrum 
-                tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
- 
+            if tstr['par'] is not None:
+                # Getting the rms of all the components of the whole spectrum
+                try:
+                    tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
+                except:
+                    print('rms problem')
+                    import pdb; pdb.set_trace()
+                    
                 # Printing and plotting
                 if noplot == False:
                     utils.gplot(spec.vel,spec.flux,tstr['par'],xlim=plotxr)
@@ -1621,7 +1625,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     print('No gaussians found at this position!')
 
             # ADDING SOLUTION TO GSTRUC
-            if tstr is not None:
+            if tstr['par'] is not None:
                 if count == 0: 
                     gstruc_add(tstr)
                 if count > 0: 
