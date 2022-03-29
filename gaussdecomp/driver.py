@@ -503,9 +503,6 @@ def gfind(x,y,xr=None,yr=None):
     # Found something, getting the values 
     if len(pind) > 0:
         tstr = GSTRUC['data'][pind[0]]
-        if type(tstr) is list:
-            print('list problem')
-            import pdb; pdb.set_trace()
         rms = tstr['rms']
         noise = tstr['noise']
         par = tstr['par']
@@ -1336,8 +1333,11 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         # 
         # Move forward in x if possible 
          
-        tstr,tstr1,tstr2,skip,guessx,guessy,guesspar = None,None,None,False,None,None,None        
-         
+        skip,guessx,guessy,guesspar = False,None,None,None        
+        tstr = {'par':None}
+        tstr1 = {'par':None}
+        tstr2 = {'par':None}        
+        
         # STARTING WITH BTRACK, RESTORING THE LAST STATE 
         if (count == 0) and (gstruc is not None and btrack is not None):
             BTRACK = btrack
@@ -1479,7 +1479,9 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr1['lat'] = lat
                     tstr1['rms'] = v0results['rms'] 
                     tstr1['noise'] = spec.noise
- 
+                else:
+                    tstr1 = {'par':None}
+                    
                 # REMOVING ZERO-VELOCITY parameters and spectrum
                 guesspar2 = None
                 inspec = spec.copy()
@@ -1525,18 +1527,20 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr2['lon'] = lon 
                     tstr2['lat'] = lat 
                     tstr2['noise'] = spec.noise 
+                else:
+                    tstr2 = {'par':None}
                     
                 # ADDING THE STRUCTURES TOGETHER, TSTR = [TSTR1,TSTR2]
-                if tstr1 is not None and tstr2 is not None:
+                if tstr1['par'] is not None and tstr2['par'] is not None:
                     tstr = tstr1.copy()
                     tstr['par'] = np.hstack((tstr1['par'],tstr2['par']))
                     tstr['sigpar'] = np.hstack((tstr1['sigpar'],tstr2['sigpar']))
                     tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
-                if tstr1 is not None and tstr2 is None:
+                if tstr1['par'] is not None  and tstr2 is None:
                     tstr = tstr1.copy()
-                if tstr1 is None and tstr2 is not None:
+                if tstr1['par'] is None and tstr2['par'] is not None:
                     tstr = tstr2.copy()
-                if tstr1 is None and tstr2 is None:  # no gaussians
+                if tstr1['par'] is None and tstr2['par'] is None:  # no gaussians
                     tstr = gstruc_dict.copy()
                     tstr['x'] = x 
                     tstr['y'] = y 
@@ -1628,17 +1632,17 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         # SKIP FITTING PART
         else: 
             # Creating a dummy structure 
-            tstr = None
+            tstr = {'par':None}
             redo_fail = False
             redo = False
             back = False
  
             if trackplot:
                 utils.gtrackplot(x,y,lastx,lasty,redo,count,xr=xr,yr=yr,pstr=pstr,xstr=xstr,ystr=ystr)
- 
- 
+
+                
         # FINISHING UP THE TRACKING STRUCTURE
-        if tstr is not None:
+        if tstr['par'] is not None:
             npar = len(tstr['par'])
             track['par'] = tstr['par']
             track['rms'] = rms
