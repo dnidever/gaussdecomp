@@ -10,7 +10,6 @@ setup(name='gaussdecomp',
       author_email='dnidever@montana.edu',
       url='https://github.com/dnidever/gaussdecomp',
       packages=find_packages(exclude=["tests"]),
-      #scripts=['bin/doppler'],
+      scripts=['bin/gaussdecomp'],
       install_requires=['numpy','astropy(>=4.0)','scipy','dlnpyutils(>=1.0.3)']
-      #include_package_data=True,
 )

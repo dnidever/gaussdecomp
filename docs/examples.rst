@@ -8,7 +8,7 @@ Running |gaussdecomp|
 
 The main program is gdriver.pro.  I normally create a small IDL batch script to run segments of a cube.  An example one is provided using a small `GASS <https://www.atnf.csiro.au/research/GASS/index.html>`_ (`McClure-Griffiths et al. 2009 <https://ui.adsabs.harvard.edu/abs/2009ApJS..181..398M>`_) cube downloaded from https://www.astro.uni-bonn.de/hisurvey/gass/ using these parameters:
 
-.. code-block:: idl
+.. code-block:: python
     l = 295.0 deg
     b = -41.0 deg
     width in l = 1 deg
@@ -17,7 +17,7 @@ The main program is gdriver.pro.  I normally create a small IDL batch script to 
 
 The example script is `gass.in` and looks like this:
 
-.. code-block:: idl
+.. code-block:: python
     spawn,'echo $HOST',host
     print,'RUNNING THIS PROGRAM ON ',host
     @compile_all
@@ -183,7 +183,7 @@ The repository includes a plotting routine called `ghess.pro` which is useful fo
 
 Here's a simple figure just showing the total area of all the Gaussians in a given, essentially a column density map.
 
-.. code-block:: idl
+.. code-block:: python
    IDL>str = mrdfits('../data/gass.fits.gz',1)
    IDL>ghess,str,'lon','lat',dx=1,dy=1,/total,/log
 
@@ -192,7 +192,7 @@ Here's a simple figure just showing the total area of all the Gaussians in a giv
 
 Now let's plot the velocity of the Gaussian versus one of the coordinates and color-coded by the total area.
 
-.. code-block:: idl
+.. code-block:: python
    IDL>ghess,str,'lon','cen',dx=1,dy=1,/total,/log
 
 
@@ -200,7 +200,7 @@ Now let's plot the velocity of the Gaussian versus one of the coordinates and co
 
 And, finally, we can also plot the distribution of the other Gaussian parameters.  Height versus sigma width.
 
-.. code-block:: idl
+.. code-block:: python
    IDL>ghess,str,'sig','ht',dx=0.2,dy=0.2
 
 ![Height versus sigma](htsig.png)
