@@ -17,7 +17,7 @@ from scipy.interpolate import interp1d
 from astropy.io import fits
 from astropy.wcs import WCS
 from dlnpyutils import utils as dln
-from . import utils
+from . import utils,spectrum
 
 # Ignore these warnings, it's a bug
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
@@ -27,65 +27,67 @@ class Cube:
     # A class for the radio data cube
         
     # Initialize the object
-    def __init__(self,data=None,header=None,getfunction=None,veldim=None,vel=None):
-        self._getfunction = getfunction
-        self._data = data
+    def __init__(self,data=None,header=None,getfunction=None,vdim=None,vel=None):
+        self.getfunction = getfunction
+        self.data = data  # assuming this has already been properly transposed!!!
         if data is not None:       
-            self._shape = data.shape
+            self.shape = data.shape
         else:
-            self._shape = None
-        self._header = header
-        if self._header is not None:
-            self._wcs = WCS(header)
-        if veldim is not None:
-            self._veldim = veldim
-        if header is not None and veldim is None:
+            self.shape = None
+        self.header = header
+        if self.header is not None:
+            self.wcs = WCS(header)
+        if vdim is not None:
+            self.vdim = vdim
+        if header is not None and vdim is None:
             for i in range(3):
                 ctype = header.get('ctype'+str(i+1))
                 if 'vel' in ctype.lower() or 'vrad' in ctype.lower() or 'vlsr' in ctype.lower():
-                    self._veldim = i
-        if self._veldim is not None:
-            naxis = header.get('naxis'+str(self._veldim+1))
-            cdelt = header.get('cdelt'+str(self._veldim+1))
-            crval = header.get('crval'+str(self._veldim+1))
-            crpix = header.get('crpix'+str(self._veldim+1))
+                    self.vdim = i
+        if self.vdim is not None:
+            naxis = header.get('naxis'+str(self.vdim+1))
+            cdelt = header.get('cdelt'+str(self.vdim+1))
+            crval = header.get('crval'+str(self.vdim+1))
+            crpix = header.get('crpix'+str(self.vdim+1))
             vel = crval + cdelt * (np.arange(naxis)+1-crpix)
-            self._vel = vel
+            self.vel = vel
+            self.nvel = naxis
         else:
-            self._vel = None
+            self.vel = None
+            self.nvel = None
         # X and Y dimensions and sizes
-        if self._veldim is not None:
+        if self.vdim is not None:
             left = np.arange(3)
-            left = np.delete(left,self._veldim)
-            self._xdim = left[0]
-            naxis1 = header.get('naxis'+str(self._xdim+1))            
-            #ctype1 = header.get('ctype'+str(self._xdim+1))
-            #cdelt1 = header.get('cdelt'+str(self._xdim+1))
-            #crval1 = header.get('crval'+str(self._xdim+1))
-            #crpix1 = header.get('crpix'+str(self._xdim+1))
+            left = np.delete(left,self.vdim)
+            self.xdim = left[0]
+            naxis1 = header.get('naxis'+str(self.xdim+1))            
+            #ctype1 = header.get('ctype'+str(self.xdim+1))
+            #cdelt1 = header.get('cdelt'+str(self.xdim+1))
+            #crval1 = header.get('crval'+str(self.xdim+1))
+            #crpix1 = header.get('crpix'+str(self.xdim+1))
             #x = crval1 + cdelt1 * (np.arange(naxis1)+1-crpix1)
             x = np.arange(naxis1).astype(int)
-            self._x = x
-            self._nx = len(x)
-            #self._xtype = ctype1
-            self._ydim = left[1]            
-            naxis2 = header.get('naxis'+str(self._ydim+1))
-            #ctype2 = header.get('ctype'+str(self._ydim+1))            
-            #cdelt2 = header.get('cdelt'+str(self._ydim+1))
-            #crval2 = header.get('crval'+str(self._ydim+1))
-            #crpix2 = header.get('crpix'+str(self._ydim+1))
+            self.x = x
+            self.nx = len(x)
+            #self.xtype = ctype1
+            self.ydim = left[1]            
+            naxis2 = header.get('naxis'+str(self.ydim+1))
+            #ctype2 = header.get('ctype'+str(self.ydim+1))            
+            #cdelt2 = header.get('cdelt'+str(self.ydim+1))
+            #crval2 = header.get('crval'+str(self.ydim+1))
+            #crpix2 = header.get('crpix'+str(self.ydim+1))
             #y = crval2 + cdelt2 * (np.arange(naxis2)+1-crpix2)
             y = np.arange(naxis2).astype(int)
-            self._y = y
-            self._ny = len(y)
-            #self._ytype = ctype2
+            self.y = y
+            self.ny = len(y)
+            #self.ytype = ctype2
         else:
-            self._xdim = None
-            self._ydim = None
-            self._nx = None
-            self._ny = None
-            self._x = None
-            self._y = None
+            self.xdim = None
+            self.ydim = None
+            self.nx = None
+            self.ny = None
+            self.x = None
+            self.y = None
         
     def __repr__(self):
         out = self.__class__.__name__
@@ -103,15 +105,19 @@ class Cube:
 
     def __call__(self,x,y):
         """ Return the spectrum at a given X/Y position."""
-        if self._getfunction is not None:
-            return self._getfunction(x,y)
+        if x<0 or y<0:  # out of bounds
+            return None
+        if self.getfunction is not None:
+            return self.getfunction(x,y)
         else:
-            if self._veldim == 0:
-                vel,flux = np.copy(self._vel), np.copy(self._data[:,x,y])
-            elif self._veldim == 1:
-                vel,flux = np.copy(self._vel), np.copy(self._data[x,:,y])                
-            elif self._veldim == 2:
-                vel,flux = np.copy(self._vel), np.copy(self._data[x,y,:])                
+            if x>(self.nx-1) or y>(self.ny-1):  # out of bounds
+                return None
+            if self.vdim == 0:
+                vel,flux = np.copy(self.vel), np.copy(self.data[:,x,y])
+            elif self.vdim == 1:
+                vel,flux = np.copy(self.vel), np.copy(self.data[x,:,y])                
+            elif self.vdim == 2:
+                vel,flux = np.copy(self.vel), np.copy(self.data[x,y,:])                
             else:
                 print('not understood')
         # Return spectrum object
@@ -121,7 +127,7 @@ class Cube:
     def coords(self,x,y):
         """ Get the coordinates for this X/Y position."""
         
-        return self._wcs.pixel_to_world(x,y)
+        return self.wcs.pixel_to_world(x,y)
 
     def copy(self):
         """ Create a copy of the cube."""
@@ -129,19 +135,19 @@ class Cube:
                     
     def write(self,outfile):
         """ Write cube to a file."""
-        if self._cube is None:
+        if self.data is None:
             print('No data to write out')
             return
         hdu = fits.HDUList()
-        hdu.append(fits.PrimaryHDU(self._cube,self._header))
+        hdu.append(fits.PrimaryHDU(self.cube,self.header))
         # add values to header
-        if self._veldim is not None:
-            hdu[0].header['veldim'] = veldim
+        if self.vdim is not None:
+            hdu[0].header['vdim'] = vdim
         hdu.writeto(outfile,overwrite=True)
 
     @classmethod
     def read(cls,infile):
         """ Read in a cube from a file."""
-        cube,head = fits.getdata(infile,header=True)
+        data,head = fits.getdata(infile,header=True)
         # get information from header?
-        return Cube(cube,header=head)
+        return Cube(data.T,header=head)

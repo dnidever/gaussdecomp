@@ -6,7 +6,7 @@ import numpy as np
 from . import utils
 from dlnpyutils import utils as dln
 
-def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
+def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                 color=False,vmax=None,vmin=None,debug=False):
                 
     """
@@ -25,7 +25,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
        The maximum velocity to use 
     noplot : boolean, optional
        Don't plot anything 
-    noprint : boolean, optional
+    silent : boolean, optional
        Don't print anything 
     debug : boolean, optional
        Diagnostic printing and plotting.
@@ -46,7 +46,9 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
     Written by D. Nidever, April 2005 
     Translated to python by D. Nidever, March 20222
     """
- 
+
+    noresults = {'par':None,'sigpar':None,'resid':None,'rms':None}
+    
     # Start time 
     gt0 = time.time() 
      
@@ -81,6 +83,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
     addt0 = time.time() 
  
     # TRYING THE FIRST GUESS PARAMETERS
+    #----------------------------------
     finpar = None
     if initpar is not None:
      
@@ -96,13 +99,14 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
         finpar = utils.gremdup(finpar,v)    # removing the duplicates 
 
         
-    # ADDING GAUSSIANS 
+    # ADDING GAUSSIANS
+    #-----------------
  
     # One gaussian added per loop
     flag = 0
     while (flag != 1): 
 
-        if noprint is False:
+        if silent is False:
             print('count = ',str(count))
      
         # Using the initial guess 
@@ -122,7 +126,6 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
             resid = np.copy(y)
          
         # Smoothing the data
-        import pdb; pdb.set_trace()
         smresid4 = dln.savgol(resid, 9,2) 
         smresid16 = dln.savgol(resid, 33,2) 
         if (npts > 61): 
@@ -198,31 +201,37 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
                     gcount += 1
  
         # Only taking the good rms 
-        gdrms , = np.where(rmsarr != 999999.) 
+        gdrms , = np.where(rmsarr < 999999.) 
         ngdrms = len(gdrms)
         
         # No good ones 
-        if ngdrms == 0: 
-            if (count == 0): 
-                flag = 1 
-                par0 = -1 
-                continue
+        if ngdrms == 0:
+            if (count == 0):
+                return noresults
             else: 
-                flag = 1 
+                flag = 1
+                count += 1
                 continue 
         rmsarr = rmsarr[gdrms]
         pararr = pararr[gdrms,:]
         pararr = pararr.flatten()
-
+        
         # Removing bad gaussians 
         pararr = utils.gremove(pararr,v,y)
  
-        # Removing the duplicates 
-        pararr = utils.gremdup(pararr,v)
+        # Removing the duplicates
+        if pararr is not None:
+            pararr = utils.gremdup(pararr,v)
         
-        # No good ones 
-        if len(pararr) < 2: 
-            flag = 1 
+        # No good ones
+        if pararr is None:
+            flag = 1
+            count += 1
+            continue
+        if len(pararr) < 2:
+            return noresults
+            flag = 1
+            count += 1
             continue
  
  
@@ -235,7 +244,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
             pararr2 = np.zeros((n,3),float)
         sigpararr2 = np.copy(pararr2) 
  
-        if noprint is False:
+        if silent is False:
             print(str(n)+' gaussian candidates')
  
  
@@ -275,7 +284,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
  
         # Printing the parameters 
         #ngauss = n_elements(par0)/3
-        if noprint is False and rms != 999999: 
+        if silent is False and rms != 999999: 
             utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq)
  
         # Ending Criteria 
@@ -293,10 +302,15 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
         count += 1
 
       
-    if noprint is False:
+    if silent is False:
         print(' Addition of Gaussians ',time.time()-addt0,' sec')
- 
-    # Saving the results of the fit 
+
+    # No gaussians found 
+    if pararr is None:
+        return noresults
+        
+    # Saving the results of the fit
+    import pdb; pdb.set_trace()
     sigpar00 = sigpar 
     rms00 = rms 
  
@@ -306,7 +320,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
  
     # Printing the parameters 
     ngauss = len(par0)//3
-    if noprint is False:
+    if silent is False:
         utils.printgpar(par0,sigpar00,ngauss,rms,noise)
  
     # REMOVING GAUSSIANS 
@@ -374,16 +388,16 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,noprint=False,
     ngauss = len(par0)//3
     if noplot is False:
         utils.gplot(v,spec,par0)
-    if noprint is False:
+    if silent is False:
         utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq)
  
     # Printing the total time
-    if noprint is False:
+    if silent is False:
         print('Total time = ',str(time.time()-gt0))
  
     # No gaussians found 
     if par0 is None:
-        return np.array([]),np.array([]),999999.,999999.        
+        return noresults
 
     results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms}
     return results

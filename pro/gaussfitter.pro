@@ -332,7 +332,7 @@ WHILE (endflag ne 1) do begin
 
   ;stop
 
-END ; while (endflag ne 1)
+ENDWHILE ; while (endflag ne 1)
 if not keyword_set(noprint) then print,'END Addition of Gaussians ',systime(1)-addt0,' sec'
 
 ;stop

@@ -454,11 +454,17 @@ def gest(v,spec,ind,nsig=3):
     if len(mina)==0 or len(maxa)==0:
         return np.array([]),np.array([])
     maxind, = np.where(maxa < ind)
-    maxind = maxind[-1]
-    lo = maxa[maxind]
+    if len(maxind)>0:
+        maxind = maxind[-1]
+        lo = maxa[maxind]
+    else:
+        lo = np.maximum(ind-10,0)
     minind, = np.where(mina > ind)
-    minind = minind[0]
-    hi = mina[minind]
+    if len(minind)>0:
+        minind = minind[0]            
+        hi = mina[minind]
+    else:
+        hi = np.minimum(ind+10,len(v)-1)
      
     # Finding the slope for r = (d(spec)/dv)/spec 
     # dsdv/spec = -vv0/sig^2. 
