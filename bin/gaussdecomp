@@ -22,7 +22,7 @@ except ImportError:
 
 # Main command-line program
 if __name__ == "__main__":
-    parser = ArgumentParser(description='Run Doppler fitting on spectra')
+    parser = ArgumentParser(description='Run Gaussian Decomposition')
     parser.add_argument('cubefiles', type=str, nargs='+', help='Cube file')
     parser.add_argument('--xstart', type=int, nargs='+', default=0, help='X starting position')
     parser.add_argument('--ystart', type=int, nargs='+', default=0, help='Y starting position')
