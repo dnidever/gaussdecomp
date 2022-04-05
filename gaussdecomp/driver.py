@@ -140,7 +140,11 @@ def gincrement(x,y,xr,yr,xsgn=1,ysgn=1,nstep=1,p2=False):
     x1 = xr[1] 
     y0 = yr[0] 
     y1 = yr[1] 
-     
+
+    if x0 is None or x1 is None or y0 is None or y1 is None:
+        print('problem')
+        import pdb; pdb.set_trace()
+    
     # Are we in the box? 
     if (x < x0) or (x > x1) or (y < y0) or (y > y1):
         return None,None
@@ -1273,12 +1277,6 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         backret = True
 
 
-      
-
-        
-    # Restore file 
-    #restore_file = repstr(outfile,'.fits','_restore.sav') 
- 
     # Checking the file
     if outfile is None:
         logtime = datetime.now().strftime("%Y%m%d%H%M%S") 
@@ -1594,7 +1592,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 if noplot == False:
                     utils.gplot(spec.vel,spec.flux,tstr['par'],xlim=plotxr)
                 if silent == False:
-                    utils.printgpar(tstr['par'],tstr['sigpar'],tstr['rms'],tstr['noise'])
+                    utils.printgpar(tstr['par'],sigpar=tstr['sigpar'],rms=tstr['rms'],noise=tstr['noise'])
                 if trackplot:
                     utils.gtrackplot(x,y,lastx,lasty,redo, count,xr=xr,yr=yr,pstr=pstr,xstr=xstr,ystr=ystr)
             else:

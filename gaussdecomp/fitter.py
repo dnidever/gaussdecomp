@@ -266,7 +266,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             # Giagnostic plotting and printing
             if debug:
                 utils.gplot(v,y,fpar)
-                utils.printgpar(fpar,sigpar,len(fpar)//3,rms,noise,chisq,success)
+                utils.printgpar(fpar,sigpar=sigpar,rms=rms,noise=noise,chisq=chisq,success=success)
                 sleep(1.5)
  
         # Adding the gaussian with the lowest rms
@@ -288,7 +288,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         # Printing the parameters 
         #ngauss = n_elements(par0)/3
         if silent is False and rms != 999999: 
-            utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq)
+            utils.printgpar(par0,sigpar=sigpar,rms=rms,noise=noise,chisq=chisq)
  
         # Ending Criteria 
         drms = (rms0-rms)/rms0 
@@ -323,7 +323,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     # Printing the parameters 
     ngauss = len(par0)//3
     if silent is False:
-        utils.printgpar(par0,sigpar00,ngauss,rms,noise)
+        utils.printgpar(par0,sigpar=sigpar00,rms=rms,noise=noise)
  
     # REMOVING GAUSSIANS 
     
@@ -392,7 +392,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     if noplot is False:
         utils.gplot(v,spec,par0)
     if silent is False:
-        utils.printgpar(par0,sigpar,ngauss,rms,noise,chisq)
+        utils.printgpar(par0,sigpar=sigpar,rms=rms,noise=noise,chisq=chisq)
  
     # Printing the total time
     if silent is False:

@@ -195,15 +195,20 @@ def gremdup(pararr,v):
     This program removes gaussian parameters that 
     are very similar to another one 
      
-    INPUT 
-       pararr  Array of parameters [ngauss*3] 
-       v       Array of velocities 
+    Parameters
+    ----------
+    pararr  Array of parameters [ngauss*3] 
+    v       Array of velocities 
      
-    OUTPUT 
-       pararr  Array of parameters with duplicate removed 
+    Returns
+    -------
+    pararr  Array of parameters with duplicate removed 
      
     Created by David Nidever April 2005 
     """
+
+    if pararr is None or v is None:
+        return None
     
     npar = len(pararr) 
     nv = len(v) 
