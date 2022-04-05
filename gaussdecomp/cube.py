@@ -128,12 +128,23 @@ class Cube:
         """ Get the coordinates for this X/Y position."""
         if self.wcs is not None:
             if self.vdim==0:
-                dum,lon,lat = self.wcs.pixel_to_world(0,x,y)
+                out = self.wcs.pixel_to_world(0,x,y)
+                if len(out)==3:
+                    dum,lon,lat = out
             elif self.vdim==1:
-                lon,dum,lat = self.wcs.pixel_to_world(x,0,y)
+                out = self.wcs.pixel_to_world(x,0,y)
+                if len(out)==3:
+                    lon,dum,lat = out
             elif self.vdim==2:
-                lon,lat,dum = self.wcs.pixel_to_world(x,y,0)
-            return lon.value,lat.value            
+                out = self.wcs.pixel_to_world(x,y,0)
+                if len(out)==3:
+                    lon,lat,dum = out
+            if len(out)==2:
+                c = out[0]
+                keys = list(c.frame.representation_component_names.keys())
+                lon = getattr(c,keys[0]).value
+                lat = getattr(c,keys[1]).value
+            return lon,lat        
         else:
             return x,y
 
