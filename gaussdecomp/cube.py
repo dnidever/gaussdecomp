@@ -60,6 +60,10 @@ class Cube:
                 if vunit.lower().strip()=='m/s':
                     vel /= 1e3
                     self.vunit = units.km/units.s
+            else:
+                print('No units for velocity.  Assuming m/s')
+                vel /= 1e3
+                self.vunit = units.km/units.s
             self.vel = vel
             self.nvel = naxis
         else:
@@ -92,15 +96,15 @@ class Cube:
     def __repr__(self):
         out = self.__class__.__name__
         if self.data is not None:
-            out += '([%d,%d,%d], %.2f < V < %.2f)\n' % \
-                   (self.shape[0],self.shape[1],self.shape[2],self.vel[0],self.vel[-1])
+            out += '([%d,%d,%d], %.2f < V < %.2f %s)\n' % \
+                   (self.shape[0],self.shape[1],self.shape[2],np.min(self.vel),np.max(self.vel),self.vunit)             
         return out
 
     def __str__(self):
         out = self.__class__.__name__
         if self.data is not None:
-            out += '([%d,%d,%d], %.2f < V < %.2f)\n' % \
-                   (self.shape[0],self.shape[1],self.shape[2],self.vel[0],self.vel[-1])        
+            out += '([%d,%d,%d], %.2f < V < %.2f %s)\n' % \
+                   (self.shape[0],self.shape[1],self.shape[2],np.min(self.vel),np.max(self.vel),self.vunit) 
         return out
 
     def __call__(self,x,y):

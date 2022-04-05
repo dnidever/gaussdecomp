@@ -47,7 +47,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     Translated to python by D. Nidever, March 20222
     """
 
-    noresults = {'par':None,'sigpar':None,'resid':None,'rms':None}
+    noresults = {'par':None,'sigpar':None,'resid':None,'rms':None,'noise':None}
     
     # Start time 
     gt0 = time.time() 
@@ -91,11 +91,11 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         inpar = utils.gremove(inpar,v,y) # removing bad ones 
         inpar = utils.gremdup(inpar,v)   # removing the duplicates 
      
-        # Letting everything float 
-        finpar,sigpar,rms,chisq,residuals,noise,success,rt1 = utils.gfit(v,y,inpar,noise=noise)
-     
-        finpar = utils.gremove(finpar,v,y)  # removing bad ones 
-        finpar = utils.gremdup(finpar,v)    # removing the duplicates 
+        # Letting everything float
+        if inpar is not None:
+            finpar,sigpar,rms,chisq,residuals,noise,success,rt1 = utils.gfit(v,y,inpar,noise=noise)
+            finpar = utils.gremove(finpar,v,y)  # removing bad ones 
+            finpar = utils.gremdup(finpar,v)    # removing the duplicates 
 
         
     # ADDING GAUSSIANS
@@ -110,13 +110,13 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
      
         # Using the initial guess 
         if finpar is not None:
-            par0 = finpar
+            par0 = np.copy(finpar)
         if par0 is not None:
             npar0 = len(par0)
-     
+            
         # Getting the Residuals 
-        if par0 is not None:
-            th = utils.gfunc(v,*par0) 
+        if par0 is not None and len(par0)>0:
+            th = utils.gfunc(v,*par0)
             if th[0] != 999999.: 
                 resid = y-th 
             else: 
@@ -256,8 +256,11 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             else:
                 par = np.copy(ipar)
                 
-            # Letting everything float 
+            # Letting everything float
             fpar,sigpar,rms,chisq,residuals,noise5,success5,rt5 = utils.gfit(v,y,par,noise=noise)
+            if success5 is False:
+                print('no success')
+                import pdb; pdb.set_trace()
             npar = len(fpar)
             rmsarr2[i] = rms 
             pararr2[i,:] = fpar 
@@ -270,18 +273,21 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                 sleep(1.5)
  
         # Adding the gaussian with the lowest rms
-        try:
-            gdi = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))[0][0]
-        except:
-            print('fitter problem')
-            import pdb; pdb.set_trace()
-        par0 = pararr2[gdi,:]
-        npar0 = len(par0) 
-        sigpar = sigpararr2[gdi,:]
-        rms = rmsarr2[gdi]
-        sigpar00 = sigpar 
-        rms00 = rms 
- 
+        gdi, = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))
+        if len(gdi)>0:
+            par0 = pararr2[gdi,:].flatten()
+            npar0 = len(par0) 
+            sigpar = sigpararr2[gdi,:].flatten()
+            rms = rmsarr2[gdi][0]
+            sigpar00 = sigpar 
+            rms00 = rms 
+        else:
+            par0 = None
+            npar0 = 0
+            sigpar = None
+            rms = 999999.
+            rms00 = rms
+            
         # Plot what we've got so far 
         #if not keyword_set(noplot) then gplot,v,spec,par0 
  
@@ -335,7 +341,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
  
     # None left - End
     if par0 is None:
-        return np.array([]),np.array([]),999999.,999999.
+        return noresults
  
     # Sorting the gaussians by area 
     orig_par0 = par0 
@@ -382,7 +388,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
  
-    # Run it one last time for the final values 
+    # Run it one last time for the final values
     fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
     ngauss = len(par0)//3 
@@ -402,5 +408,5 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     if par0 is None:
         return noresults
 
-    results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms}
+    results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms,'noise':spectrum.noise}
     return results

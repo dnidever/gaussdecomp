@@ -140,11 +140,7 @@ def gincrement(x,y,xr,yr,xsgn=1,ysgn=1,nstep=1,p2=False):
     x1 = xr[1] 
     y0 = yr[0] 
     y1 = yr[1] 
-
-    if x0 is None or x1 is None or y0 is None or y1 is None:
-        print('problem')
-        import pdb; pdb.set_trace()
-    
+        
     # Are we in the box? 
     if (x < x0) or (x > x1) or (y < y0) or (y > y1):
         return None,None
@@ -345,9 +341,13 @@ def gbetter(res1,res2):
  
     better = -1   # default unless proven wrong 
 
-    rms1,noise1,par1 = res1['rms'],res1['noise'],res1['par']
-    rms2,noise2,par2 = res2['rms'],res2['noise'],res2['par']    
-    
+    try:
+        rms1,noise1,par1 = res1['rms'],res1['noise'],res1['par']
+        rms2,noise2,par2 = res2['rms'],res2['noise'],res2['par']    
+    except:
+        print('noise problem')
+        import pdb; pdb.set_trace()
+        
     # In case either one is -1 (bad)
     if par1 is not None and par2 is not None:
         if (rms1 == -1) and (rms2 != -1): 
@@ -479,17 +479,17 @@ def gfind(x,y,xr=None,yr=None):
         x0 = xr[0] 
         x1 = xr[1] 
     else: 
-        x0 = 0. 
-        x1 = 359.5
+        x0 = 0 
+        x1 = 1000
     if yr is not None:
         y0 = yr[0] 
         y1 = yr[1] 
     else: 
-        y0 = -90. 
-        y1 = 90. 
+        y0 = 0
+        y1 = 1000
      
     if (x < x0) or (x > x1) or (y < y0) or (y > y1): 
-        flag = -1 
+        flag = 0
         return flag,results
      
     # No GSTRUC yet, first position
@@ -593,7 +593,7 @@ def gguess(x,y,xr,yr,xsgn,ysgn):
     # Is the x range continuous??
     # Assume not continuous in general
     cont = 0 
-     
+    
     # getting the p3 and p4 positions 
     # P3 back in x (l-0.5), same y 
     # P4 back in y (b-0.5), same x 
@@ -738,7 +738,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
         # back position better, redo pre-redo position 
         if (b==0) and redo: 
-            # Getting the guess 
+            # Getting the guess
             guesspar,guessx,guessy = gguess(x,y,xr,yr,xsgn,ysgn)
             redo = True
             skip = False
@@ -985,7 +985,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
             # Moving to P1 (P1 worse than P0) 
             if (b1==0) and redo1: 
                 newx,newy = x1,y1
-                # getting the guess 
+                # getting the guess
                 guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
             # Can't redo P1, or P1 better than P0, move another step ahead 
             else: 
@@ -1004,7 +1004,6 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         if (p1==1) and (p2==1): 
             b1 = gbetter(res0,res1)
             b2 = gbetter(res0,res2)
-            redo = True   # redo unless proven otherwise 
             # Checking to see if this has been done before 
             #   getting P1 position 
             redo1 = gredo(x1,y1,x,y,par0) 
@@ -1020,6 +1019,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                 # Can redo, moving to P1 
                 if redo1: 
                     newx,newy = x1,y1
+                    redo = True
                 # Can't redo, increment and skip 
                 else: 
                     newx,newy = x1,y1  # to P1 
@@ -1032,6 +1032,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                 # Can redo, moving to P2 
                 if redo2: 
                     newx,newy = x2,y2
+                    redo = True
                 # Can't redo, increment to P1 and skip 
                 else: 
                     newx,newy = x1,y1  # to P1 
@@ -1053,10 +1054,12 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                         newx,newy = x2,y2
 
                 # Can't redo P2, go to P1 
-                if redo1 and (redo2 == False): 
+                if redo1 and (redo2 == False):
+                    redo = True
                     newx,newy = x1,y1  # to P1 
                 # Can't redo P1, go to P2 
-                if (redo1 == False) and redo2: 
+                if (redo1 == False) and redo2:
+                    redo = True
                     newx,newy = x2,y2   # to P2 
                 # Can't do either, increment to P1 and skip 
                 if (redo1 == False) and (redo2 == False): 
@@ -1064,16 +1067,16 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                     redo = False
                     skip = True 
 
-            # Both better, increment to P1 and skip
-            #--------------------------------------
-            if (b1==1) and (b2==1): 
+            # Both better or both no Gaussians, increment to P1 and skip
+            #-----------------------------------------------------------
+            if ((b1==1) and (b2==1)) or ((b1==-1) and (b2==-1)):
                 newx,newy = x1,y1    # to P1 
                 redo = False
                 skip = True 
 
             # Getting the guess 
             if redo:  # redo 
-                # Getting the new guess from backward positions 
+                # Getting the new guess from backward positions
                 gguesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
 
@@ -1082,7 +1085,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         if (p1==0) and (p2==0): 
             # Increment to P1
             newx,newy = x1,y1
-            # Getting the guess 
+            # Getting the guess
             guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
 
@@ -1090,7 +1093,10 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     if newx is None or newy is None:
         # Increment to P1
         newx,newy = x1,y1
-        # Getting the guess 
+        # Getting the guess
+        if newx is None or newy is None:
+            print('x/y problem 5')
+            import pdb; pdb.set_trace()        
         guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
         
@@ -1147,7 +1153,7 @@ def savedata(outfile):
 def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
            plotxr=None,trackplot=False,noplot=True,silent=False,
            noback=False,backret=True,wander=False,gstruc=None,btrack=None,
-           savestep=100,clobber=False):
+           savestep=1000,clobber=False):
     """
     This program runs the gaussian fitting program 
     on a large part of the HI all sky survey 
@@ -1216,7 +1222,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     btrack : list, optional
        Tracking structure to start with.
     savestep : int, optional
-       Number of steps to save on.  Default is 100.
+       Number of steps to save on.  Default is 1000.
     clobber : boolean, optional
        Overwrite any existing files.  Default is False.
 
@@ -1561,7 +1567,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 tp0,res0 = gfind(x,y,xr=xr,yr=yr)
                 if (tp0 == 0) and (guesspar is not None):
                     results2 = fitter.gaussfitter(spec,silent=True,noplot=True)                    
-                    b = gbetter(results1,results2)
+                    b = gbetter(results,results2)
                     # The fit without the guess is better 
                     if (b == 1): 
                         results = results2.copy()                        

@@ -103,7 +103,7 @@ def parcheck(x,y,par):
     flag = 0 
      
     # Calculate dX    
-    dx = np.median(np.diff(x[0:np.minimum(10,npts)]))
+    dx = np.abs(np.median(np.diff(x[0:np.minimum(10,npts)])))
      
     # Checking for bad stuff 
     if npts < 3: 
@@ -123,7 +123,7 @@ def parcheck(x,y,par):
         # Checking height 
         if par[3*i] <= 0.01: 
             flag = 1 
-        if par[3*i] > np.max(y)*1.1: 
+        if par[3*i] > np.max(y)*2.0: 
             flag = 1 
      
         # Checking center 
@@ -322,9 +322,9 @@ def gfunc(x,*par,noderiv=True):
     # Adding power terms 
     npow = npar-3*ngauss 
     if npow>0: 
-        for i in range(npow): 
-            th += par[i+3]*x**float(i) 
- 
+        for i in range(npow):
+            th += par[i+3*ngauss]*x**float(i) 
+                
     # Computing partial derivatives with respect to the parameters 
     if noderiv == False:
         dp = np.zeros((npts,npar),float)
@@ -641,7 +641,7 @@ def gfit(x,y,par,bounds=None,noise=None):
             chisq = 999999. 
             resid = np.copy(y)*0.
             success = False
-        # Problems with the initial parameters 
+    # Problems with the initial parameters 
     else: 
         fpar = par 
         perror = par*0.+999999. 
@@ -651,7 +651,7 @@ def gfit(x,y,par,bounds=None,noise=None):
         success = False
         
     rtime = time.time()-t0 
-
+    
     return fpar,perror,rms,chisq,resid,noise,success,rtime
 
 def gsort(par,dec=False,cen=False):
