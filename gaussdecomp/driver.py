@@ -967,7 +967,7 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     if ((p3==0) and (p4==0)) or (back == False) or noback: 
 
         # This is the very end 
-        if (x1 is None): 
+        if (x1 is None) or (x==xr[1] and y==yr[1]):
             endflag = True
             return newx,newy,guessx,guessy,guesspar,False,False,endflag
 
@@ -1094,18 +1094,14 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         # Increment to P1
         newx,newy = x1,y1
         # Getting the guess
-        if newx is None or newy is None:
-            print('x/y problem 5')
-            import pdb; pdb.set_trace()        
-        guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
-
+        if newx is not None and newy is not None:
+            guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
         
     try:
         dumx,dumy = newx,newy
     except:
         print('problem')
         import pdb; pdb.set_trace()
-            
 
     return newx,newy,guessx,guessy,guesspar,redo,skip,endflag
 
@@ -1366,6 +1362,10 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             x,y,guessx,guessy,guesspar,redo,skip,endflag = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
                                                                     wander=wander,redo=redo,back=back,redo_fail=redo_fail)
 
+        # The end
+        if endflag or ((x>=xr[1]) and (y>=yr[1])):
+            break
+            
         # Starting the tracking structure, bad until proven good
         track = track_dict.copy()
         track['count'] = count 
@@ -1670,11 +1670,10 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 
     # FINAL SAVE
     ngauss = np.sum(GSTRUC['ngauss'][0:GSTRUC['count']])
-    print(str(gauss)+' final Gaussians')
-    print('Saving data to ',file)
+    print(str(ngauss)+' final Gaussians')
     gstruc = savedata(outfile)
  
-    print('Total time = ',str(time.time()-tstart,2),' sec.')
+    print('Total time = %.2f sec.' % (time.time()-tstart))
 
     return gstruc
 
