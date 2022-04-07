@@ -651,7 +651,7 @@ def gfit(x,y,par,bounds=None,noise=None):
         # Try my custom least squares solver
         if success==False:
             try:
-                fpar,perror,cov = lsqr.lsq_solve([x,y],y,gfunc_jac,initpar,error=sigma,bounds=bounds)            
+                fpar,perror,cov = lsqr.lsq_solve([x,y],y,gfunc_jac,initpar,error=sigma,bounds=bounds,method='svd')            
                 # total resid 
                 result = gfunc(x,*fpar) 
                 resid = y-result
