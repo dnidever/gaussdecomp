@@ -13,8 +13,10 @@ from .cube import Cube
 
 # Tracking lists
 n = 100000
-BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,'ngauss':np.zeros(n,int)-1}
-GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,'ngauss':np.zeros(n,int)-1}
+BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
+          'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
+GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
+          'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
 
 def gstruc_add(tstr):
     """ Add to the GSTRUC tracking structure."""
@@ -25,7 +27,7 @@ def gstruc_add(tstr):
     # x/y:    the x/y position for the gaussians
     # ngauss: the number of gaussians
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
 
     if type(tstr) is list:
         print('list input')
@@ -34,7 +36,7 @@ def gstruc_add(tstr):
     # Add new elements
     if len(tstr)+GSTRUC['count'] > len(GSTRUC['x']):
         print('Adding more elements to GSTRUC')
-        for n in ['x','y','ngauss']:
+        for n in ['x','y','ngauss','npix']:
             GSTRUC[n] = np.hstack((GSTRUC[n],np.zeros(100000,int)-1))
     # Stuff in the new data
     count = GSTRUC['count']
@@ -45,6 +47,7 @@ def gstruc_add(tstr):
         GSTRUC['ngauss'][count] = len(tstr['par'])//3
     else:
         GSTRUC['ngauss'][count] = 0
+    GSTRUC['npix'][count] = tstr['npix']
     GSTRUC['count'] += 1
         
     if type(GSTRUC['data'][-1]) is list:
@@ -61,7 +64,7 @@ def gstruc_replace(tstr):
     ind = ind[0]
     GSTRUC['data'][ind] = tstr
     GSTRUC['ngauss'][ind] = len(tstr['par'])//3
-    
+    GSTRUC['npix'][ind] = tstr['npix']
     
 def btrack_add(track):
     """ Add to the BTRACK tracking structure."""
@@ -72,12 +75,12 @@ def btrack_add(track):
     # x/y:    the x/y position for the gaussians
     # ngauss: the number of gaussians
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
     
     # Add new elements
     if BTRACK['count']+1 > len(BTRACK['x']):
         print('Adding more elements to BTRACK')
-        for n in ['x','y','ngauss']:
+        for n in ['x','y','ngauss','npix']:
             BTRACK[n] = np.hstack((BTRACK[n],np.zeros(100000,int)-1))
     # Stuff in the new data
     count = BTRACK['count']
@@ -259,7 +262,7 @@ def gredo(x,y,guessx,guessy,guesspar):
     Translated to python by D. Nidever, March 2022
     """
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
     
     flag = True  # do it unless proven wrong 
      
@@ -274,8 +277,9 @@ def gredo(x,y,guessx,guessy,guesspar):
     ngg = nguesspar//3 
      
     # FROM **ANY** PREVIOUS POSITION 
-    # we have used a guess from this position before 
-    #  but have the parameters changed sufficiently 
+    # We have used a guess from this position before 
+    #  but have the parameters changed sufficiently
+    nogaussians = True  # no gaussians found by default
     if (nprev > 0): 
          
         # Looping through the previous ones 
@@ -284,6 +288,7 @@ def gredo(x,y,guessx,guessy,guesspar):
          
             # Some gaussians found 
             if (guesspar2 is not None):
+                nogaussians = False
                 tpar = guesspar2
                 ntpar = len(tpar) 
                 ntg = ntpar//3      # number of gaussians in this guess 
@@ -294,7 +299,7 @@ def gredo(x,y,guessx,guessy,guesspar):
                     tpar2 = utils.gsort(tpar) 
                     tguesspar2 = utils.gsort(tguesspar) 
                     
-                    # Gixing possible zeros that could ruin the ratio 
+                    # Fixing possible zeros that could ruin the ratio 
                     dum = np.copy(tpar2)
                     bd, = np.where(dum == 0.) 
                     if len(bd) > 0:
@@ -305,9 +310,12 @@ def gredo(x,y,guessx,guessy,guesspar):
                     # These differences are too small, NO redo 
                     if (np.max(ratio) < 0.01): 
                         return False
- 
+                    
+        # Some previous visits, but no Gaussians detected, redo=False
+        if nogaussians:
+            return False
+                    
     return flag 
-
 
 def gbetter(res1,res2):
     """
@@ -328,6 +336,13 @@ def gbetter(res1,res2):
          1 - Second position better than the first 
          0 - First position better than the second 
         -1 - Any problems 
+    dbic : float
+       Difference of Bayesian Information Criterion (BIC)
+         between the two solutions (BIC1-BIC2).
+         Lower BIC is better.
+         dbic < 0    Solution 1 is better.
+         dbic == 0   Solutions are equally good.
+         dbic > 0    Solution 2 is better.
      
     If the first one is better then it returns 0 
     and if the second one is better it returns 1 
@@ -340,13 +355,27 @@ def gbetter(res1,res2):
     """
  
     better = -1   # default unless proven wrong 
+    dbic = 0      # same to start with
+        
+    rms1,noise1,par1 = res1.get('rms'),res1.get('noise'),res1.get('par')
+    rms2,noise2,par2 = res2.get('rms'),res2.get('noise'),res2.get('par')
+    
+    # Calculate Bayesian Information Criterion (BIC)
+    # lower BICs are better
+    bic1 = utils.bayesinfocrit(res1)
+    bic2 = utils.bayesinfocrit(res2)
+    dbic = bic1-bic2
 
-    try:
-        rms1,noise1,par1 = res1['rms'],res1['noise'],res1['par']
-        rms2,noise2,par2 = res2['rms'],res2['noise'],res2['par']    
-    except:
-        print('noise problem')
-        import pdb; pdb.set_trace()
+    # Solution 1 is better
+    if dbic <= 0:
+        better = 0
+    # Solution 2 is better
+    if dbic > 0 :
+        better = 1
+
+    return better,dbic
+
+    # ---------- OLD CODE, NOT USED ANYMORE ----------
         
     # In case either one is -1 (bad)
     if par1 is not None and par2 is not None:
@@ -357,21 +386,21 @@ def gbetter(res1,res2):
         if (rms1 == -1) and (rms2 == -1): 
             better = -1 
         if (rms1 == -1) or (rms2 == -1): 
-            return better
+            return better,dbic
         if (len(par1) < 3) and (len(par2) >= 3): 
             better = 1 
         if (len(par2) < 3) and (len(par1) >= 3): 
             better = 0 
         if (len(par1) < 3) or (len(par2) < 3): 
-            return better
+            return better,dbic
 
     # One is bad, second is better
     if par1 is None:
-        return -1
+        return -1,dbic
     
     # Two is bad, first is better    
     if par2 is None:
-        return -1
+        return -1,dbic
     
     drms1 = rms1-noise1 
     drms2 = rms2-noise2 
@@ -384,13 +413,13 @@ def gbetter(res1,res2):
     if (drms1 > drms2) and (n1 >= n2): 
         better = 1 
      
-    # rms same, n different 
+    # RMS same, N different 
     if (drms1 == drms2) and (n1 <= n2): 
         better = 0 
     if (drms1 == drms2) and (n1 > n2): 
         better = 1 
      
-    # mixed bag, lower rms but higher n 
+    # Mixed bag, lower RMS but higher N
     if (drms1 < drms2) and (n1 > n2): 
         ddrms = drms2-drms1 
         rdrms = ddrms/drms2   # ratio compared to worse one 
@@ -421,7 +450,7 @@ def gbetter(res1,res2):
         if (dn >= 4) and (rdrms > 2.0) : 
             better = 1 
      
-    return better 
+    return better,dbic
 
 
 def gfind(x,y,xr=None,yr=None):
@@ -465,13 +494,14 @@ def gfind(x,y,xr=None,yr=None):
     Translated to python by D. Nidever, March 2022
     """
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
     
     # Assume bad until proven otherwise 
     flag,rms,noise,par,pind = None,None,None,None,None
-    results = {'pind':pind,'rms':rms,'noise':noise,'par':par}  # initial bad values
+    results = {'x':x,'y':y,'pind':pind,'rms':rms,'noise':noise,'par':par,'visited':None,'npix':None}  # initial bad values
 
     if x is None or y is None:
+        results['visited'] = 0
         return 0,results
     
     # Setting the ranges
@@ -490,6 +520,7 @@ def gfind(x,y,xr=None,yr=None):
      
     if (x < x0) or (x > x1) or (y < y0) or (y > y1): 
         flag = 0
+        results['visited'] = 0
         return flag,results
      
     # No GSTRUC yet, first position
@@ -507,7 +538,7 @@ def gfind(x,y,xr=None,yr=None):
         bind, = np.where((BTRACK['x']==x) & (BTRACK['y']==y))
         # Found it
         if len(bind)>0:
-            return 1,{'par':None,'rms':np.inf,'noise':None}
+            return 1,{'x':x,'y':y,'pind':None,'rms':np.inf,'noise':None,'par':None,'visited':1,'npix':None}
     
     # Found something, getting the values 
     if len(pind) > 0:
@@ -515,14 +546,15 @@ def gfind(x,y,xr=None,yr=None):
         rms = tstr['rms']
         noise = tstr['noise']
         par = tstr['par']
+        npix = tstr['npix']
         flag = 1 
             
     # Nothing found 
     else:
-        pind,rms,noise,par = None,None,None,None
+        pind,rms,noise,par,npix = None,None,None,None,None
         flag = 0 
-
-    results = {'pind':pind,'rms':rms,'noise':noise,'par':par}
+        
+    results = {'x':x,'y':y,'pind':pind,'rms':rms,'noise':noise,'par':par,'visited':flag,'npix':npix}
     return flag,results
 
 
@@ -586,7 +618,7 @@ def gguess(x,y,xr,yr,xsgn,ysgn):
     orig_y = y 
 
     if xr is None:
-        xr = [0.,2000]
+        xr = [0,2000]
     if yr is None:
         yr = [0,2000] 
      
@@ -627,18 +659,18 @@ def gguess(x,y,xr,yr,xsgn,ysgn):
     p4,res4 = gfind(x4,y4)
      
     # Comparing the solutions 
-    b34 = gbetter(res3,res4)
+    b34,dbic34 = gbetter(res3,res4)
      
     # selecting the best guess 
-    if (b34 == 0):# using P3 
+    if (dbic34<0): # using P3 
         guesspar = res3['par']
         guessx = x3
         guessy = y3 
-    if (b34 == 1):# using P4 
+    if (dbic34>=0): # using P4 
         guesspar = res4['par']
         guessx = x4 
         guessy = y4 
-    if (b34 == -1): 
+    if np.isfinite(dbic34)==False:
         guesspar = None
         guessx = None 
         guessy = None
@@ -651,7 +683,7 @@ def gguess(x,y,xr,yr,xsgn,ysgn):
 
 
 def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False,
-             noback=False,backret=True,wander=True):
+             noback=False,backret=True,wander=True,silent=False):
     """
     Figure out the next move, the next position to decompose.
 
@@ -685,7 +717,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
          came from.  Default is True.
     wander : boolean, optional
       Allow backwards motion. Haud's algorithm.  Default is False.
-
+    silent : boolean, optional
+      Do not print anything to the screen.  Default is False.
 
     Returns
     -------
@@ -699,6 +732,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
       X position for guess parameters.
     guesspar : list/array
       Guess parameter array.
+    back : boolean
+      Are we going backwards or not.
     redo : boolean
       New position is a redo.
     skip : boolean
@@ -713,31 +748,38 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
     """
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
 
     endflag = False
+    
 
+    # This is the very end 
+    if (x==xr[1] and y==yr[1]):
+        endflag = True
+        return None,None,None,None,None,False,False,endflag
+    
 
     # If back, redo and BACKRET=1 then return to pre-redo position
     #=============================================================
     # This is done separately from the normal algorithm 
     if backret and back and redo: 
         back = False
-        nbtrack = len(BTRACK)
-        newx = BTRACK[-1]['data']['lastx']
-        newy = BTRACK[-1]['data']['lasty']
-        lastx = BTRACK[-1]['data']['x']
-        lasty = BTRACK[-1]['data']['y']        
+        lastcount = BTRACK['count']
+        newx = BTRACK['data'][-1]['lastx']
+        newy = BTRACK['data'][-1]['lasty']
+        lastx = BTRACK['data'][-1]['x']
+        lasty = BTRACK['data'][-1]['y']
+        par0 = BTRACK['data'][-1]['par']  # parameters from the current position
 
         # p0 is the redo position, p5 is the pre-redo position 
         p0,res0 = gfind(lastx,lasty,xr=xr,yr=yr)
         p5,res5 = gfind(newx,newy,xr=xr,yr=yr)
 
-        b = gbetter(res0,res5)
+        b,dbic = gbetter(res0,res5)
         redo = gredo(newx,newy,lastx,lasty,par0) 
 
         # back position better, redo pre-redo position 
-        if (b==0) and redo: 
+        if (dbic<0) and redo: 
             # Getting the guess
             guesspar,guessx,guessy = gguess(x,y,xr,yr,xsgn,ysgn)
             redo = True
@@ -746,18 +788,20 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         else:
             redo = False
             skip = True
-
-        return newx,newy,guessx,guessy,guesspar,redo,skip
+            guesspar,guessx,guessy = None,None,None
+            
+        return newx,newy,guessx,guessy,guesspar,back,redo,skip,endflag
 
 
     # Redo Failed! Return to original position
-    #   If we went back and backret=1 then return to pre-redo positi
+    #   If we went back and backret=1 then return to pre-redo position
     #   if we went forward then don't do anything, should continue forward 
     if redo and redo_fail and back: 
         # Go back to pre-redo position and skip
         newx = BTRACK[-1]['data']['lastx']
-        newy = BTRACK[-1]['data']['lasty']            
-        return newx,newy,None,None,None,False,True
+        newy = BTRACK[-1]['data']['lasty']
+        skip = True
+        return newx,newy,None,None,None,False,False,skip,endflag
     
 
     # Some default values
@@ -779,7 +823,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     x3,y3 = gincrement(x,y,xr,yr,xsgn=-xsgn,ysgn=-ysgn)
     x4,y4 = gincrement(x,y,xr,yr,xsgn=xsgn,ysgn=-ysgn,p2=True)
 
-    # Have they been visited before? 
+    # Have they been visited before?
+    # ps are 0 or 1
     p0,res0 = gfind(x,y,xr=xr,yr=yr)
     par0 = res0['par']
     p1,res1 = gfind(x1,y1,xr=xr,yr=yr)
@@ -787,30 +832,31 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     p3,res3 = gfind(x3,y3,xr=xr,yr=yr)
     p4,res4 = gfind(x4,y4,xr=xr,yr=yr)
 
-    # PRINTING OUT SOME RELEVANT INFORMATION HERE 
-    # comparing the solutions at neighboring positions
-    b1 = gbetter(res0,res1)
-    b2 = gbetter(res0,res2)
-    b3 = gbetter(res0,res3)
-    b4 = gbetter(res0,res4)
-
-    # Do we need to redo? 
+    # Comparing the solutions at neighboring positions
+    # bs are 0, 1 or -1
+    b1,dbic1 = gbetter(res0,res1)
+    res1['better'] = b1
+    res1['dbic'] = dbic1
+    b2,dbic2 = gbetter(res0,res2)
+    res2['better'] = b2
+    res2['dbic'] = dbic2
+    b3,dbic3 = gbetter(res0,res3)
+    res3['better'] = b3
+    res3['dbic'] = dbic3
+    b4,dbic4 = gbetter(res0,res4)
+    res4['better'] = b4
+    res4['dbic'] = dbic4    
+    
+    # Do we need to redo?
+    red1,red2,red3,red4 = False,False,False,False
     if (p1==1) and (b1==0): 
         red1 = True
-    else: 
-        red1 = False
     if (p2==1) and (b2==0): 
         red2 = True
-    else: 
-        red2 = False
     if (p3==1) and (b3==0): 
         red3 = True
-    else: 
-        red3 = False
     if (p4==1) and (b4==0): 
         red4 = True
-    else: 
-        red4 = False
 
     xx = [x1,x2,x3,x4]
     yy = [y1,y2,y3,y4]
@@ -819,23 +865,25 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     rr = [red1,red2,red3,red4]
     
     # Printing out the info
-    if count>0:
-        print(' ')
-    print('Count = %d' % count)
-    print('Last/Current Position = (%d,%d)' %(x,y))
-    print('Neighbors (position)  visited  better  redo')
-    for i in range(4):
-        if xx[i] is not None:
-            strx = '%5d' % xx[i]
-        else:
-            strx = '-----'
-        if yy[i] is not None:
-            stry = '%5d' % yy[i]
-        else:
-            stry = '-----'            
-        print('P%1d (%5s,%5s)  %7d  %7d  %7s' % (i+1,strx,stry,pp[i],bb[i],str(rr[i])))    
-    print('')
+    if silent==False:
+        if count>0:
+            print(' ')
+        print('Count = %d' % count)
+        print('Last/Current Position = (%d,%d)' %(x,y))
+        print('Neighbors (position)  visited  better  redo')
+        for i in range(4):
+            if xx[i] is not None:
+                strx = '%5d' % xx[i]
+            else:
+                strx = '-----'
+            if yy[i] is not None:
+                stry = '%5d' % yy[i]
+            else:
+                stry = '-----'            
+            print('P%1d (%5s,%5s)  %7d  %7d  %7s' % (i+1,strx,stry,pp[i],bb[i],str(rr[i])))    
+        print('')
 
+        
     # If P3 or P4 worse than P0 then move back to worst decomp 
     # If P3 and P4 better than P0 then move forward,
     #   -if both have been visited before then do the worst decomp 
@@ -847,7 +895,62 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
     #  (not redo+back+backred)
     #==========================
 
-
+    # More generic algorithm, checks all 4 positions and possible redos
+    newscheme = True
+    if noback==False and newscheme:
+        endflag = False
+        res1['redo'] = False
+        if res1['visited']==True:
+            res1['redo'] = gredo(res1['x'],res1['y'],x,y,par0)
+        res2['redo'] = False
+        if res2['visited']==True:
+            res2['redo'] = gredo(res2['x'],res2['y'],x,y,par0)    
+        res3['redo'] = False
+        if res3['visited']==True:
+            res3['redo'] = gredo(res3['x'],res3['y'],x,y,par0)    
+        res4['redo'] = False
+        if res4['visited']==True:
+            res4['redo'] = gredo(res4['x'],res4['y'],x,y,par0)
+        res = [res1,res2,res3,res4]
+        redos = [res1['redo'],res2['redo'],res3['redo'],res4['redo']]
+        dbic = np.array([res1['dbic'],res2['dbic'],res3['dbic'],res4['dbic']])
+        toredo, = np.where((np.array(redos)==True) & (dbic<0))
+        # Some redos
+        if len(toredo)>0:
+            # Find the one with the worst solution
+            if len(toredo)>1:
+                best1 = np.argmin(dbic[toredo])
+                best = toredo[best1]
+            else:
+                best = toredo[0]
+            if best>=2:
+                back = True
+            else:
+                back = False
+            newres = res[best]
+            newx,newy = newres['x'],newres['y']
+            guessx,guessy,guesspar = x,y,par0
+            redo = True
+        # No redos, more foward to P1
+        else:
+            redo = False
+            back = False
+            newx,newy = x1,y1
+            guessx,guessy,guesspar = x,y,par0
+            # if we already visited P1, then skip
+            if res1['visited']:
+                skip = True
+            else:
+                skip = False
+            
+        return newx,newy,guessx,guessy,guesspar,back,redo,skip,endflag
+            
+        # check if the position is a "valid" one
+        # check if it was previously visited
+        # check if it CAN be redone
+        # for all that can be redone, which one has the largest negative dbic (worse solution)
+        
+            
 
     #==============================                    
     #---- CHECKING BACKWARDS ----
@@ -857,11 +960,8 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         # Only P3 visited before
         #=======================
         if (p3==1) and (p4==0): 
-            b3 = gbetter(res0,res3)
-            # Checking to see if this has been done before 
-            #   getting P3 position 
+            # Can this position be redone
             redo = gredo(x3,y3,x,y,par0)
-
             # P3 worse than P0, moving back
             #------------------------------
             if (b3==0) and redo: 
@@ -874,12 +974,9 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
         # Only P4 visited before
         #=======================
-        if (p4==1) and (p3==0): 
-            b4 = gbetter(res0,res4)
-            # Checking to see if this has been done before 
-            #   getting P4 position 
+        elif (p3==0) and (p4==1): 
+            # Can this position be redone
             redo = gredo(x4,y4,x,y,par0)
-
             # P4 worse than P0, moving back
             #------------------------------
             if (b4==0) and redo: 
@@ -892,33 +989,30 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
         # Both visited before
         #====================
-        if (p3==1) and (p4==1): 
-            b3 = gbetter(res0,res3)
-            b4 = gbetter(res0,res4)
-            redo = True    # redo unless proven otherwise 
-            # Checking to see if this has been done before 
-            #   getting P3 position 
+        elif (p3==1) and (p4==1): 
+            redo = False    # not redo unless proven otherwise 
+            # Can these positions be redone
             redo3 = gredo(x3,y3,x,y,par0) 
-            # Checking to see if this has been done before 
-            #   getting P4 position 
             redo4 = gredo(x4,y4,x,y,par0) 
 
-            # P3 worse than P0, but P4 better than P0 (b3=0 and b4=1)
+            # P3 worse than P0, but P4 better than P0 (or no gauss) (b3==0 and b4!=0)
             #----------------------------------------
-            if (b3==0) and (b4==1): 
+            if (b3==0) and (b4!=0): 
                 # We can redo it, moving back to P3 
-                if redo3: 
+                if redo3:
+                    redo = True
                     newx,newy = x3,y3
                 # Can't redo, move forward 
                 else:
                     redo = False
                     back = False
 
-            # P4 worse than P0, but P3 better than P0 (b3=1 and b4=0)
+            # P4 worse than P0, but P3 better than P0 (or no gauss) (b3!=0 and b4==0)
             #----------------------------------------
-            if (b3==1) and (b4==1): 
+            elif (b3!=0) and (b4==0): 
                 # We can redo it, moving back to P4 
-                if redo4: 
+                if redo4:
+                    redo = True
                     newx,newy = x4,y4
                 # Can't redo, move forward 
                 else: 
@@ -927,10 +1021,11 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
             # Both P3 and P4 are worse than P0
             #---------------------------------
-            if (b3==0) and (b4==0): 
-                # Can redo either one 
-                if redo3 and redo4: 
-                    b34 = gbetter(res3,res4)
+            elif (b3==0) and (b4==0): 
+                # Can redo either one, redo the one with the worse solution
+                if redo3 and redo4:
+                    redo = True
+                    b34,dbic34 = gbetter(res3,res4)
                     # Moving back to P3 (P3 worse than P4) 
                     if (b34==1):   # to P3 
                         newx,newy = x3,y3
@@ -938,55 +1033,61 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                     if (b34==0):   # to P4 
                         newx,newy = x4,y4
                 # Can't redo P4, go to P3 
-                if redo3 and (redo4 == False): 
+                if redo3 and (redo4==False):
+                    redo = True
                     newx,newy = x3,y3   # to P3
                 # Can't redo P3, go to P4 
-                if (redo3 == False) and redo4: 
-                    newx,newy = x4,y4   # to P4 
+                if (redo3==False) and redo4:
+                    redo = True
+                    newx,newy = x4,y4   # to P4
                 # Can't do either, move forward 
-                if (redo3 == False) and (redo4 == False): 
+                if (redo3==False) and (redo4==False): 
                     redo = False 
                     back = False
 
-            # Both are better than P0, move forward
-            #--------------------------------------
-            if (b3==1) and (b4==1): 
+            # Both are better than P0 or both no Gaussians, move forward
+            #-----------------------------------------------------------
+            elif (b3!=0) and (b4!=0):
                 back = False
                 redo = False
 
+            # Shouldn't ever happen
+            else:
+                import pdb; pdb.set_trace()
+                
             # One is worse than P0
             #---------------------
             if redo: 
                 back = True  # moving backwards 
                 guessx,guessy,guesspar = x,y,par0
 
+        # Neither visited before, backwards not possible
+        #  p3==0 and p4==0
+        else:
+            back = False
+
 
     #==============================
     # ---- CHECKING FORWARD ----
     #==============================
-    if ((p3==0) and (p4==0)) or (back == False) or noback: 
+    if ((p3==0) and (p4==0)) or (back==False) or noback: 
 
         # This is the very end 
         if (x1 is None) or (x==xr[1] and y==yr[1]):
             endflag = True
-            return newx,newy,guessx,guessy,guesspar,False,False,endflag
+            return None,None,None,None,None,False,False,False,endflag
 
         back = False  # moving forward 
 
         # Only P1 has been visited before
         #================================
         if (p1==1) and (p2==0): 
-            b1 = gbetter(res0,res1)
             redo = True
-            # Checking to see if this has been done before 
-            #   getting P1 position 
+            # Can this position be redone
             redo1 = gredo(x1,y1,x,y,par0) 
-
             # Moving to P1 (P1 worse than P0) 
             if (b1==0) and redo1: 
                 newx,newy = x1,y1
-                # getting the guess
-                guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
             # Can't redo P1, or P1 better than P0, move another step ahead 
             else: 
                 newx,newy = x1,y1
@@ -995,40 +1096,35 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
 
         # Only P2 has been visited before, THIS SHOULD NEVER HAPPEN
         #================================                    
-        if (p2==1) and (p1==0): 
+        elif (p1==0) and (p2==1): 
             print('This should never happen!!')
             import pdb; pdb.set_trace() 
 
         # Both have been visited before
         #==============================                  
-        if (p1==1) and (p2==1): 
-            b1 = gbetter(res0,res1)
-            b2 = gbetter(res0,res2)
-            # Checking to see if this has been done before 
-            #   getting P1 position 
+        elif (p1==1) and (p2==1):
+            # Can this position be redone            
             redo1 = gredo(x1,y1,x,y,par0) 
-            # Checking to see if this has been done before 
-            #   getting P2 position 
             redo2 = gredo(x2,y2,x,y,par0) 
-            if (redo1 == False) and (redo2 == False):  # no redo 
+            if (redo1==False) and (redo2==False):  # no redo 
                 redo = False
 
-            # P1 worse than P0, and P2 better than P0 (b1=0 and b2=1)
-            #----------------------------------------
-            if (b1==0) and (b2==1): 
+            # P1 worse than P0, and P2 better than P0 (or no gauss) (b1==0 and b2!=0)
+            #------------------------------------------------------
+            if (b1==0) and (b2!=0): 
                 # Can redo, moving to P1 
                 if redo1: 
                     newx,newy = x1,y1
                     redo = True
-                # Can't redo, increment and skip 
+                # Can't redo, increment to P1 and skip 
                 else: 
                     newx,newy = x1,y1  # to P1 
                     redo = False
                     skip = True
 
-            # P2 worse than P0, and P1 better than P0 (b1=1 and b2=0)
-            #----------------------------------------
-            if (b1==1) and (b2==0): 
+            # P2 worse than P0, and P1 better than P0 (or no gauss) (b1==1 and b2==0)
+            #------------------------------------------------------
+            elif (b1!=0) and (b2==0): 
                 # Can redo, moving to P2 
                 if redo2: 
                     newx,newy = x2,y2
@@ -1039,13 +1135,13 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                     redo = False
                     skip = True
 
-
             # Both worse than P0
             #-------------------
-            if (b1==0) and (b2==0):  # both bad, find worst 
-                # Can redo either one 
-                if redo1 and redo2: 
-                    b12 = gbetter(res1,res2)
+            elif (b1==0) and (b2==0):  # both bad, find worst 
+                # Can redo either one, move to the one with the worse solution
+                if redo1 and redo2:
+                    redo = True
+                    b12,dbic12 = gbetter(res1,res2)
                     # Moving to P1 (P1 worse than P2) 
                     if (b12==1):  # to P1 
                         newx,newy = x1,y1
@@ -1054,48 +1150,52 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
                         newx,newy = x2,y2
 
                 # Can't redo P2, go to P1 
-                if redo1 and (redo2 == False):
+                if redo1 and (redo2==False):
                     redo = True
                     newx,newy = x1,y1  # to P1 
                 # Can't redo P1, go to P2 
-                if (redo1 == False) and redo2:
+                if (redo1==False) and redo2:
                     redo = True
                     newx,newy = x2,y2   # to P2 
                 # Can't do either, increment to P1 and skip 
-                if (redo1 == False) and (redo2 == False): 
+                if (redo1==False) and (redo2==False): 
                     newx,newy = x1,y1  # to P1 
                     redo = False
                     skip = True 
 
-            # Both better or both no Gaussians, increment to P1 and skip
-            #-----------------------------------------------------------
-            if ((b1==1) and (b2==1)) or ((b1==-1) and (b2==-1)):
+            # Both better than P0 or both no Gaussians, increment to P1 and skip
+            #-------------------------------------------------------------------
+            elif (b1!=0) and (b2!=0):
                 newx,newy = x1,y1    # to P1 
                 redo = False
                 skip = True 
 
-            # Getting the guess 
-            if redo:  # redo 
-                # Getting the new guess from backward positions
-                gguesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
+            # Shouldn't ever happen
+            else:
+                print('Should not happen 1')
+                import pdb; pdb.set_trace()
+                
 
-
-        # Neither has been visited before, increment
-        #===========================================
-        if (p1==0) and (p2==0): 
+        # Neither has been visited before, increment to P1
+        #=================================================
+        elif (p1==0) and (p2==0): 
             # Increment to P1
             newx,newy = x1,y1
-            # Getting the guess
-            guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
 
+        # Should never happen
+        else:
+            print('Should not happen 2')
+            import pdb; pdb.set_trace()            
+            
 
     # No new position determined yet, move forward to P1
     if newx is None or newy is None:
         # Increment to P1
         newx,newy = x1,y1
-        # Getting the guess
-        if newx is not None and newy is not None:
-            guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
+
+    # Getting guess
+    if newx is not None and newy is not None and guesspar is None:
+        guesspar,guessx,guessy = gguess(newx,newy,xr,yr,xsgn,ysgn)
         
     try:
         dumx,dumy = newx,newy
@@ -1103,13 +1203,14 @@ def nextmove(x,y,xr,yr,count,xsgn=1,ysgn=1,redo=False,redo_fail=False,back=False
         print('problem')
         import pdb; pdb.set_trace()
 
-    return newx,newy,guessx,guessy,guesspar,redo,skip,endflag
+        
+    return newx,newy,guessx,guessy,guesspar,back,redo,skip,endflag
 
 
 def savedata(outfile):
     """ Save the data to files."""
 
-    global BTRACK, GSTRUC
+    global BTRACK, GSTRUC, NPIX
     
     print('SAVING DATA to '+outfile)
 
@@ -1149,7 +1250,7 @@ def savedata(outfile):
 def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
            plotxr=None,trackplot=False,noplot=True,silent=False,
            noback=False,backret=True,wander=False,gstruc=None,btrack=None,
-           savestep=1000,clobber=False):
+           savestep=5000,clobber=False):
     """
     This program runs the gaussian fitting program 
     on a large part of the HI all sky survey 
@@ -1218,7 +1319,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     btrack : list, optional
        Tracking structure to start with.
     savestep : int, optional
-       Number of steps to save on.  Default is 1000.
+       Number of steps to save on.  Default is 5000.
     clobber : boolean, optional
        Overwrite any existing files.  Default is False.
 
@@ -1237,8 +1338,9 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     Translated to python by D. Nidever, March 2022
     """
 
-    global BTRACK, GSTRUC
-    
+    global BTRACK, GSTRUC, NPIX
+
+    savetime = time.time()
     endflag = False
     count = 0
     tstart = time.time() 
@@ -1321,9 +1423,9 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
 
     track_dict = {'count':None,'x':None,'y':None,'rms':None,'noise':None,'par':None,
                   'guesspar':None,'guessx':None,'guessy':None,'back':None,'redo':None,
-                  'redo_fail':None,'skip':None,'lastx':None,'lasty':None}
+                  'redo_fail':None,'skip':None,'lastx':None,'lasty':None,'npix':None}
     gstruc_dict = {'x':None,'y':None,'rms':None,'noise':None,'par':None,
-                   'sigpar':None,'lon':None,'lat':None}
+                   'sigpar':None,'lon':None,'lat':None,'npix':None}
      
     # STARTING THE LARGE LOOP 
     while (endflag == False): 
@@ -1359,8 +1461,9 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         #------------------------- 
         if (count > 0):
             lastx,lasty = x,y
-            x,y,guessx,guessy,guesspar,redo,skip,endflag = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
-                                                                    wander=wander,redo=redo,back=back,redo_fail=redo_fail)
+            out = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
+                           wander=wander,redo=redo,back=back,redo_fail=redo_fail)
+            x,y,guessx,guessy,guesspar,back,redo,skip,endflag = out
 
         # The end
         if endflag or ((x>=xr[1]) and (y>=yr[1])):
@@ -1422,6 +1525,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             lon,lat = datacube.coords(x,y)
             noise = spec.noise
             npts = spec.n
+            NPIX = npts
             
             # Zero-velocity region INCLUDED
             #====================================            
@@ -1469,16 +1573,16 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 tp0,tres0 = gfind(x,y,xr=xr,yr=yr) 
                 if (tp0 == 0) and (guesspar is not None):
                     v0results_noguess = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,silent=True,noplot=True)
-                    b = gbetter(results,results2)
+                    b,dbic = gbetter(results,results2)
                     # The fit without the guess is better 
-                    if (b == 1):
+                    if (dbic>0):
                         v0results = v0results_noguess.copy()
                         
                 # ADDING THE BEST RESULTS TO THE STRUCTURE, TSTR1
                 if v0results['par'] is not None:
                     ngauss = len(v0results['par'])//3
                     tstr1 = gstruc_dict.copy()
-                    for n in ['par','sigpar','rms']:
+                    for n in ['par','sigpar','rms','npix']:
                         tstr1[n] = v0results[n]                                        
                     tstr1['x'] = x 
                     tstr1['y'] = y
@@ -1517,7 +1621,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 # FIT WITH NO GUESS (if first time and previous fit above with guess) 
                 if (tp0 == 0) and (guesspar is not None):
                     results_noguess = fitter.gaussfitter(inspec,silent=True,noplot=True)                    
-                    b = gbetter(results3,results4)
+                    b,dbic34 = gbetter(results3,results4)
                     # The fit without the guess is better 
                     if (b == 1):
                         results = results_noguess.copy()
@@ -1526,7 +1630,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 if results['par'] is not None:
                     ngauss = len(results['par'])//3 
                     tstr2 = gstruc_dict.copy()
-                    for n in ['par','sigpar','rms']:
+                    for n in ['par','sigpar','rms','npix']:
                         tstr2[n] = results[n]               
                     tstr2['x'] = x 
                     tstr2['y'] = y
@@ -1554,6 +1658,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr['lat'] = lat 
                     tstr['rms'] = np.inf
                     tstr['noise'] = spec.noise 
+                    tstr['npix'] = len(spec.flux)
                     
                         
             # Does NOT cover zero-velocity region
@@ -1565,29 +1670,28 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 
                 # FIT WITH NO GUESS (if first time and previous fit above with guess)
                 tp0,res0 = gfind(x,y,xr=xr,yr=yr)
+                results2 = None
                 if (tp0 == 0) and (guesspar is not None):
                     results2 = fitter.gaussfitter(spec,silent=True,noplot=True)                    
-                    b = gbetter(results,results2)
+                    b,dbic = gbetter(results,results2)
                     # The fit without the guess is better 
-                    if (b == 1): 
+                    if (dbic>0): 
                         results = results2.copy()                        
                          
                 # Creating the structure with the results
                 if results['par'] is not None:
                     ngauss = len(results['par'])//3
                     tstr = gstruc_dict.copy()
-                    for n in ['par','sigpar','rms']:
+                    for n in ['par','sigpar','rms','npix']:
                         tstr[n] = results[n]                    
                     tstr['x'] = x
                     tstr['y'] = y
                     tstr['noise'] = spec.noise
                     tstr['lon'] = lon 
-                    tstr['lat'] = lat 
+                    tstr['lat'] = lat
                 else:
                     tstr = {'par':None}
                     
-                
-
  
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
             if tstr['par'] is not None:
@@ -1615,7 +1719,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     # This is a re-decomposition 
                     if (old==1) and redo: 
                         # Checking the two decompositions 
-                        b = gbetter(tstr,res1)
+                        b,dbic = gbetter(tstr,res1)
                         # New one is better 
                         if (b == False): 
                             gstruc_replace(tstr)  # replacing the solution
@@ -1649,6 +1753,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             track['par'] = tstr['par']
             track['rms'] = tstr['rms']
             track['noise'] = tstr['noise']
+            track['npix'] = tstr['npix']
         else:
             npar = 0
         track['redo_fail'] = redo_fail 
@@ -1662,12 +1767,13 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         lastx = x 
         lasty = y 
  
-        print('dt = %.1f sec ' % (time.time()-t00))
+        #print('dt = %.1f sec ' % (time.time()-t00))
  
         # SAVING THE STRUCTURES, periodically
-        if count % savestep == 0:
+        if (count % savestep == 0) and (time.time()-savetime) > 300:
             gstruc = savedata(outfile)
-                
+            savetime = time.time()
+            
     # FINAL SAVE
     ngauss = np.sum(GSTRUC['ngauss'][0:GSTRUC['count']])
     print(str(ngauss)+' final Gaussians')

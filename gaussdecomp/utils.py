@@ -819,3 +819,47 @@ def gplot(v,y,par,outfile=None,ylim=None,xlim=None,
     # Save the plot
     if outfile is not None:
         plt.savefig(outfile,bbox_inches='tight')
+
+
+def loglikelihood(res):
+    """ Compute the log likelihood from RMS, npar and noise."""
+
+    if res is None:
+        return -np.inf
+    if res['npix'] is None or res['rms'] is None or res['noise'] is None:
+        return -np.inf
+
+    # Calculate ln(L) from RMS and noise
+    # RMS = sqrt(1/N * sum(resid**2))
+    # ln(L) = -0.5*sum( resid**2/sig**2 + ln(2*pi*sig**2) )
+    # if sig is constant (noise)
+    # ln(L) = -0.5*sum( resid**2 ) / noise**2 -0.5*N*ln(2*pi*noise**2)
+    # ln(L) = -0.5*(Npix*RMS**2)/noise**2 -0.5*Npix*ln(2*pi*noise**2)
+    npix = res['npix']
+    rms = res['rms']
+    noise = res['noise']
+    lnlike = -0.5*(npix*rms**2)/noise**2-0.5*npix*np.log(2*np.pi*noise**2)
+    return lnlike
+    
+def bayesinfocrit(res):
+    """ Compute the Bayesian Information Criterion."""
+
+    # Large BICs are bad
+    if res is None:
+        return np.inf
+    if res['npix'] is None or res['rms'] is None or res['noise'] is None:
+        return np.inf
+    
+    # Bayesian Information Criterion (BIC)
+    # https://en.wikipedia.org/wiki/Bayesian_information_criterion
+    # BIC = k*ln(n) - 2*ln(L)
+    # n - number of data points
+    # k - number of parameters
+    # L - likelihood
+    lnlikelihood = loglikelihood(res)
+    if res['par'] is None:
+        bic = - 2*lnlikelihood
+    else:
+        npar = len(res['par'])        
+        bic = npar*np.log(npar) - 2*lnlikelihood        
+    return bic

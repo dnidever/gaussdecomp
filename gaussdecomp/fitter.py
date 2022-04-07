@@ -47,18 +47,22 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     Translated to python by D. Nidever, March 20222
     """
 
-    noresults = {'par':None,'sigpar':None,'resid':None,'rms':None,'noise':None}
+    noresults = {'par':None,'sigpar':None,'resid':None,'rms':None,'noise':None,'npix':None}
     
     # Start time 
     gt0 = time.time() 
      
     # Getting the HI spectrum
     v = np.copy(spectrum.vel)
-    spec = np.copy(spectrum.flux)  
+    spec = np.copy(spectrum.flux)
+    npix = len(spec)    
     # Estimating the noise
     noise = spectrum.noise
     noise_orig = noise 
-     
+    noresults['noise'] = noise
+    noresults['rms'] = np.sqrt(np.mean(spec**2))
+    noresults['npix'] = npix
+    
     # Velocity range 
     if vmin is None:
         vmin = np.min(v)
@@ -354,7 +358,8 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     
     count = 0 
     ngauss = len(par0)//3 
- 
+    print('Ngauss = %d' % ngauss)
+    
     orig_par0 = par0 
     nrefit = int(np.ceil(ngauss/2))
     if ngauss==1:
@@ -362,6 +367,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
  
     weights = np.ones(npts,float)
     rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2.)/(npts-1)) 
+    bic0 = utils.bayesinfocrit({'par':par0,'rms':rms0,'noise':noise,'npix':npix})
     
     # Loop through the smallest 1/2 
     for i in range(nrefit): 
@@ -372,9 +378,10 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         tpar = np.delete(tpar,todel)
         # Finding the best fit
         fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
-        drms = rms-rms0 
+        drms = rms-rms0
+        bic1 = utils.bayesinfocrit({'par':fpar,'rms':rms,'noise':noise,'npix':npix})
         # Remove the gaussian 
-        if (drms/rms0 < 0.02):
+        if (bic1 < bic0):   # (drms/rms0 < 0.02)
             print('removing gaussian')
             par0 = fpar
             rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2)/(npts-1))
@@ -387,7 +394,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
- 
+   
     # Run it one last time for the final values
     fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
@@ -408,5 +415,5 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     if par0 is None:
         return noresults
 
-    results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms,'noise':spectrum.noise}
+    results = {'par':par0,'sigpar':sigpar,'resid':resid,'rms':rms,'noise':spectrum.noise,'npix':npix}
     return results
