@@ -634,28 +634,40 @@ def gfit(x,y,par,bounds=None,noise=None):
     if badflag == 0:
         sigma = np.ones(npts,float)*noise
         initpar = np.copy(par)
+        success = False
+        # Try curve_fit first
         try:
-            #fpar,cov = curve_fit(gfunc, x, y, p0=initpar, sigma=sigma, bounds=bounds)
-            #perror = np.sqrt(np.diag(cov))            
-            # Try my custom least squares solver
-            fpar,perror,cov = lsqr.lsq_solve([x,y],y,gfunc_jac,initpar,error=sigma,bounds=bounds)            
-            # total resid 
+            fpar,cov = curve_fit(gfunc, x, y, p0=initpar, sigma=sigma, bounds=bounds)
+            perror = np.sqrt(np.diag(cov))
             result = gfunc(x,*fpar) 
-            resid = y-result             
-
+            resid = y-result
             dof = npts-npar
             chisq = np.sum(resid**2/sigma**2)
             sigpar = perror * np.sqrt(chisq/dof)
             rms = computerms(x,y,fpar)
             success = True
         except:
-            print('Problems in curve_fit')
-            fpar = par 
-            perror = par*0.+999999. 
-            rms = 999999. 
-            chisq = 999999. 
-            resid = np.copy(y)*0.
             success = False
+        # Try my custom least squares solver
+        if success==False:
+            try:
+                fpar,perror,cov = lsqr.lsq_solve([x,y],y,gfunc_jac,initpar,error=sigma,bounds=bounds)            
+                # total resid 
+                result = gfunc(x,*fpar) 
+                resid = y-result
+                dof = npts-npar
+                chisq = np.sum(resid**2/sigma**2)
+                sigpar = perror * np.sqrt(chisq/dof)
+                rms = computerms(x,y,fpar)
+                success = True
+            except:
+                print('Problems in curve_fit')
+                fpar = par 
+                perror = par*0.+999999. 
+                rms = 999999. 
+                chisq = 999999. 
+                resid = np.copy(y)*0.
+                success = False
     # Problems with the initial parameters 
     else: 
         fpar = par 
