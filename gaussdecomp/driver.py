@@ -11,13 +11,20 @@ from astropy.io import fits
 from . import utils,fitter
 from .cube import Cube
 
-# Tracking lists
-n = 100000
-BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
-          'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
-GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
-          'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
 
+def initialize_tracking():
+    """ Initialize the tracking structures."""
+
+    global BTRACK, GSTRUC
+
+    # Tracking lists
+    n = 100000
+    BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
+              'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
+    GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
+              'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
+
+    
 def gstruc_add(tstr):
     """ Add to the GSTRUC tracking structure."""
 
@@ -1244,7 +1251,7 @@ def savedata(outfile):
     gstruc = Table(gstruc)
     gstruc.write(outfile,overwrite=True)
     print(str(len(gstruc))+' gaussians')
-
+    
     return gstruc
     
 def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
@@ -1415,8 +1422,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     p1 = False
     p2 = False
     p3 = False
-    p4 = False
-     
+    p4 = False     
     # Where are we starting 
     x = xstart 
     y = ystart 
@@ -1426,37 +1432,31 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                   'redo_fail':None,'skip':None,'lastx':None,'lasty':None,'npix':None}
     gstruc_dict = {'x':None,'y':None,'rms':None,'noise':None,'par':None,
                    'sigpar':None,'lon':None,'lat':None,'npix':None}
-     
+
+        
+    # STARTING WITH BTRACK, RESTORING THE LAST STATE 
+    if (gstruc is not None and btrack is not None):
+        BTRACK = btrack
+        GSTRUC = gstruc
+        count = BTRACK['count']
+        x = BTRACK['x'][count-1]
+        y = BTRACK['y'][count-1]
+        count += 1 
+        lastx = x 
+        lastlast = y
+    # STARTING TRACKING FRESH
+    else:
+        initialize_tracking()
+
+        
     # STARTING THE LARGE LOOP 
     while (endflag == False): 
-         
         t00 = time.time() 
-         
-        # P0 is the current position 
-        # P1 forward in x (l+0.5), same y 
-        # P2 forward in y (b+0.5), same x 
-        # P3 back in x (l-0.5), same y 
-        # P4 back in y (b-0.5), same x 
-        # 
-        # Move forward in x if possible 
-         
         skip,guessx,guessy,guesspar = False,None,None,None        
         tstr = {'par':None}
         tstr1 = {'par':None}
         tstr2 = {'par':None}        
-        
-        # STARTING WITH BTRACK, RESTORING THE LAST STATE 
-        if (count == 0) and (gstruc is not None and btrack is not None):
-            BTRACK = btrack
-            GSTRUC = gstruc
-            count = BTRACK['count']
-            x = BTRACK['x'][count-1]
-            y = BTRACK['y'][count-1]
-            count += 1 
-            lastx = x 
-            lastlast = y 
-         
-         
+
         # FIGURE OUT THE NEXT MOVE 
         #------------------------- 
         if (count > 0):
@@ -1778,7 +1778,11 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     ngauss = np.sum(GSTRUC['ngauss'][0:GSTRUC['count']])
     print(str(ngauss)+' final Gaussians')
     gstruc = savedata(outfile)
- 
+
+    # Clean up the tracking structures
+    del BTRACK
+    del GSTRUC
+
     print('Total time = %.2f sec.' % (time.time()-tstart))
 
     return gstruc

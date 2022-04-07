@@ -396,6 +396,9 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     par0 = utils.gremove(par0,v,y)
    
     # Run it one last time for the final values
+    if par0 is None or len(par0)==0:
+        print('no parameters')
+        import pdb; pdb.set_trace()
     fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
     ngauss = len(par0)//3 
