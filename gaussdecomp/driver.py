@@ -67,7 +67,9 @@ def gstruc_replace(tstr):
     # Double-check that the positions match
     ind, = np.where((GSTRUC['x']==tstr['x']) & (GSTRUC['y']==tstr['y']))
     if len(ind)==0:
-        raise ValueError('No position for (%d,%d) found in GSTRUC' % (tstr['x'],tstr['y']))
+        print('No position for (%d,%d) found in GSTRUC. Adding instead.' % (tstr['x'],tstr['y']))
+        gstruc_add(tstr)
+        return
     ind = ind[0]
     GSTRUC['data'][ind] = tstr
     GSTRUC['ngauss'][ind] = len(tstr['par'])//3
