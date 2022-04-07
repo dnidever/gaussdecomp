@@ -23,7 +23,15 @@ import matplotlib.pyplot as plt
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-
+def computerms(v,flux,par=None):
+    """ Compute the RMS of the residuals."""
+    npix = len(v)
+    if par is not None and len(par)>0:
+        rms = np.sqrt(np.sum((flux-gfunc(v,*par))**2.)/(npix-1))  # using Haud's method, pg. 92, eg.6
+    else:
+        rms = np.sqrt(np.sum(flux**2.)/(npix-1))         
+    return rms
+    
 def computenoise(spec):
     # compute the noise in the spectrum
 
@@ -637,8 +645,8 @@ def gfit(x,y,par,bounds=None,noise=None):
 
             dof = npts-npar
             chisq = np.sum(resid**2/sigma**2)
-            sigpar = perror * np.sqrt(chisq/dof) 
-            rms = np.sqrt(np.sum((resid/sigma)**2.)/(npts-1))  # using Haud's method, pg. 92, eg.6
+            sigpar = perror * np.sqrt(chisq/dof)
+            rms = computerms(x,y,fpar)
             success = True
         except:
             print('Problems in curve_fit')

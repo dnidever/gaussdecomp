@@ -58,9 +58,10 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     npix = len(spec)    
     # Estimating the noise
     noise = spectrum.noise
-    noise_orig = noise 
+    noise_orig = noise
+    sigma = np.ones(npix,float)*noise
     noresults['noise'] = noise
-    noresults['rms'] = np.sqrt(np.mean(spec**2))
+    noresults['rms'] = utils.computerms(v,spec)
     noresults['npix'] = npix
     
     # Velocity range 
@@ -364,9 +365,10 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     nrefit = int(np.ceil(ngauss/2))
     if ngauss==1:
         nrefit = 0
- 
-    weights = np.ones(npts,float)
-    rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2.)/(npts-1)) 
+
+    sigma = np.ones(npts,float)*noise
+    weights = 1/sigma**2
+    rms0 = utils.computerms(v,spec,par0)
     bic0 = utils.bayesinfocrit({'par':par0,'rms':rms0,'noise':noise,'npix':npix})
     
     # Loop through the smallest 1/2 
@@ -384,7 +386,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         if (bic1 < bic0):   # (drms/rms0 < 0.02)
             print('removing gaussian')
             par0 = fpar
-            rms0 = np.sqrt(np.sum(weights*(spec-utils.gfunc(v,*par0))**2)/(npts-1))
+            rms0 = utils.computerms(v,spec,par0)            
             # saving the results of the fit 
             #  without this gaussian 
             sigpar00 = sigpar 
@@ -394,11 +396,12 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
-   
-    # Run it one last time for the final values
+
+    # No parameters left
     if par0 is None or len(par0)==0:
-        print('no parameters')
-        import pdb; pdb.set_trace()
+        return noresults
+    
+    # Run it one last time for the final values
     fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
     ngauss = len(par0)//3 

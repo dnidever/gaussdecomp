@@ -1525,6 +1525,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             lon,lat = datacube.coords(x,y)
             noise = spec.noise
             npts = spec.n
+            sigma = np.ones(npts,float)*noise
             NPIX = npts
             
             # Zero-velocity region INCLUDED
@@ -1645,7 +1646,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                     tstr = tstr1.copy()
                     tstr['par'] = np.hstack((tstr1['par'],tstr2['par']))
                     tstr['sigpar'] = np.hstack((tstr1['sigpar'],tstr2['sigpar']))
-                    tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
+                    tstr['rms'] = utils.computerms(spec.vel,spec.flux,tstr['par'])
                 if tstr1['par'] is not None  and tstr2 is None:
                     tstr = tstr1.copy()
                 if tstr1['par'] is None and tstr2['par'] is not None:
@@ -1696,7 +1697,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             # PLOTTING/PRINTING, IF THERE WAS A FIT 
             if tstr['par'] is not None:
                 # Getting the rms of all the components of the whole spectrum
-                tstr['rms'] = np.sqrt(np.sum((spec.flux-utils.gfunc(spec.vel,*tstr['par']))**2.)/(npts-1))
+                tstr['rms'] = utils.computerms(spec.vel,spec.flux,tstr['par'])
                     
                 # Printing and plotting
                 if noplot == False:
