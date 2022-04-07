@@ -15,7 +15,7 @@ import warnings
 from scipy.optimize import curve_fit
 from scipy.signal import argrelextrema
 from scipy.interpolate import interp1d
-from dlnpyutils import utils as dln
+from dlnpyutils import utils as dln,lsqr
 import matplotlib
 import matplotlib.pyplot as plt
 
@@ -340,6 +340,11 @@ def gfunc(x,*par,noderiv=True):
             
     return th 
 
+def gfunc_jac(xdata,*par):
+    """ Thin wrapper for lsqr solver."""
+    return gfunc(xdata[0],*par,noderiv=False)
+
+
 def printgpar(par,sigpar=None,rms=None,noise=None,chisq=None,success=None):
     """
     Printing the gaussian parameters 
@@ -619,15 +624,17 @@ def gfit(x,y,par,bounds=None,noise=None):
                      
     # Initial parameters are okay 
     if badflag == 0:
-        sigma = np.ones(npts,float)
-
+        sigma = np.ones(npts,float)*noise
         initpar = np.copy(par)
         try:
-            fpar,cov = curve_fit(gfunc, x, y, p0=initpar, sigma=sigma, bounds=bounds)
+            #fpar,cov = curve_fit(gfunc, x, y, p0=initpar, sigma=sigma, bounds=bounds)
+            #perror = np.sqrt(np.diag(cov))            
+            # Try my custom least squares solver
+            fpar,perror,cov = lsqr.lsq_solve([x,y],y,gfunc_jac,initpar,error=sigma,bounds=bounds)            
             # total resid 
             result = gfunc(x,*fpar) 
             resid = y-result             
-            perror = np.sqrt(np.diag(cov))
+
             dof = npts-npar
             chisq = np.sum(resid**2/sigma**2)
             sigpar = perror * np.sqrt(chisq/dof) 
