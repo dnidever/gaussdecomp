@@ -64,7 +64,10 @@ def gstruc_replace(tstr):
         gstruc_add(tstr)
         return
     ind = ind[0]
+    old_ngauss = len(GSTRUC['data'][ind]['par'])//3
+    new_ngauss = len(tstr['par'])//3
     GSTRUC['data'][ind] = tstr
+    GSTRUC['ngauss'] += new_ngauss - old_ngauss
     
 def btrack_add(track):
     """ Add to the BTRACK tracking structure."""
@@ -1381,24 +1384,25 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         logtime = datetime.now().strftime("%Y%m%d%H%M%S") 
         outfile = 'gaussdecomp_'+logtime+'.fits' 
  
-    # Printing out the inputs 
-    print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
-    print('-----------------------------------------------------------')
-    print(' STARTING POSITION = (%d,%d)' % (xstart,ystart))
-    print(' X RANGE = [%d,%d]' % (xr[0],xr[1]))
-    print(' Y RANGE = [%d,%d]' % (yr[0],yr[1]))
-    print(' X DIRECTION = '+str(xsgn))
-    print(' Y DIRECTION = '+str(ysgn))
-    print(' OUTFILE = '+outfile)
-    print('-----------------------------------------------------------')
-    if (backret == 1) : 
-        print(' USING (BACKRET) MODE')
-    if (noback == 1) : 
-        print(' USING (NOBACK) MODE')
-    if (wander == 1) : 
-        print(' USING (WANDER) MODE')
-    print('-----------------------------------------------------------')
-    print('')
+    # Printing out the inputs
+    if silent==False:
+        print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
+        print('-----------------------------------------------------------')
+        print(' STARTING POSITION = (%d,%d)' % (xstart,ystart))
+        print(' X RANGE = [%d,%d]' % (xr[0],xr[1]))
+        print(' Y RANGE = [%d,%d]' % (yr[0],yr[1]))
+        print(' X DIRECTION = '+str(xsgn))
+        print(' Y DIRECTION = '+str(ysgn))
+        print(' OUTFILE = '+outfile)
+        print('-----------------------------------------------------------')
+        if (backret == 1) : 
+            print(' USING (BACKRET) MODE')
+        if (noback == 1) : 
+            print(' USING (NOBACK) MODE')
+        if (wander == 1) : 
+            print(' USING (WANDER) MODE')
+        print('-----------------------------------------------------------')
+        print('')
  
     # Initializing some parameters 
     redo_fail = False 
@@ -1450,7 +1454,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         if (count > 0):
             lastx,lasty = x,y
             out = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
-                           wander=wander,redo=redo,back=back,redo_fail=redo_fail)
+                           wander=wander,redo=redo,back=back,redo_fail=redo_fail,silent=silent)
             x,y,guessx,guessy,guesspar,back,redo,skip,endflag = out
 
         # The end
@@ -1481,30 +1485,33 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         if (x == lastx) and (y == lasty): 
             import pdb; pdb.set_trace() 
  
-        if skip: 
-            print('SKIP')
+        if skip:
+            if silent==False:
+                print('SKIP')
  
         # FITTING THE SPECTRUM, UNLESS WE'RE SKIPPING IT 
         #------------------------------------------------ 
         if skip == False: 
             t0 = time.time() 
             
-            # Initial Printing 
-            print('Fitting Gaussians to the HI spectrum at (%d,%d)' % (x,y))
-            strout = ''
-            if redo:
-                strout = strout+'REDO '
-            if back:
-                strout = strout+'BACK'
-            if back is False:
-                strout = strout+'FORWARD' 
-            print(strout) 
+            # Initial Printing
+            if silent==False:
+                print('Fitting Gaussians to the HI spectrum at (%d,%d)' % (x,y))
+                strout = ''
+                if redo:
+                    strout = strout+'REDO '
+                if back:
+                    strout = strout+'BACK'
+                if back is False:
+                    strout = strout+'FORWARD' 
+                print(strout) 
                           
             # Getting the HI spectrum
             spec = datacube(x,y)  # Get the new spectrum
             # No good spectrum 
             if spec is None or np.sum(spec.flux)==0:
-                print('No spectrum to fit')
+                if silent==False:
+                    print('No spectrum to fit')
                 skip = True
                 count += 1
                 btrack_add(track)
@@ -1520,7 +1527,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             #====================================            
             if np.min(spec.vel) < 0:
                 # GETTIING THE VELOCITY RANGE around the zero-velocity MW peak
-                print('Zero-velocity region INCLUDED.  Fitting it separately')
+                if silent==False:
+                    print('Zero-velocity region INCLUDED.  Fitting it separately')
                 smspec = dln.savgol(spec.flux,21,2) 
                 dum,vindcen = dln.closest(spec.vel,0)
             
@@ -1653,9 +1661,10 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             # Does NOT cover zero-velocity region
             #====================================
             else:
-                print('Zero-velocity NOT covered')
+                if silent==False:
+                    print('Zero-velocity NOT covered')
                 # RUNNING GAUSSFITTER ON EVERYTHING WITH GUESS 
-                results = fitter.gaussfitter(spec,initpar=guesspar,noplot=True)    #silent=True)            
+                results = fitter.gaussfitter(spec,initpar=guesspar,noplot=True,silent=True)            
                 
                 # FIT WITH NO GUESS (if first time and previous fit above with guess)
                 tp0,res0 = gfind(x,y,xr=xr,yr=yr)
@@ -1688,14 +1697,14 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 tstr['rms'] = utils.computerms(spec.vel,spec.flux,tstr['par'])
                     
                 # Printing and plotting
-                if noplot == False:
+                if noplot==False:
                     utils.gplot(spec.vel,spec.flux,tstr['par'],xlim=plotxr)
-                if silent == False:
+                if silent==False:
                     utils.printgpar(tstr['par'],sigpar=tstr['sigpar'],rms=tstr['rms'],noise=tstr['noise'])
                 if trackplot:
                     utils.gtrackplot(x,y,lastx,lasty,redo, count,xr=xr,yr=yr,pstr=pstr,xstr=xstr,ystr=ystr)
             else:
-                if silent == False:
+                if silent==False:
                     print('No gaussians found at this position!')
 
             # ADDING SOLUTION TO GSTRUC
@@ -1715,7 +1724,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                             redo_fail = False
                         else: # re-decomposition failed 
                             redo_fail = True
-                            print('REDO FAILED!')
+                            if silent==False:
+                                print('REDO FAILED!')
  
                     # This is NOT a re-decomposition, add it 
                     if (old==0) or (redo == False): 
@@ -1759,9 +1769,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         # Saving the last position 
         lastx = x 
         lasty = y 
- 
-        #print('dt = %.1f sec ' % (time.time()-t00))
- 
+  
         # SAVING THE STRUCTURES, periodically
         if (count % savestep == 0) and (time.time()-savetime) > 300:
             gstruc = savedata(outfile)
