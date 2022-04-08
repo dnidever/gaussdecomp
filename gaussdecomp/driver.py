@@ -19,10 +19,8 @@ def initialize_tracking():
 
     # Tracking lists
     n = 100000
-    BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
-              'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
-    GSTRUC = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1,
-              'ngauss':np.zeros(n,int)-1,'npix':np.zeros(n,int)-1}
+    BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1}
+    GSTRUC = {'data':[],'count':0,'ngauss':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1}
 
     
 def gstruc_add(tstr):
@@ -32,7 +30,6 @@ def gstruc_add(tstr):
     # count:  the number of elements in DATA we're using currently, also
     #           the index of the next one to start with.
     # x/y:    the x/y position for the gaussians
-    # ngauss: the number of gaussians
 
     global BTRACK, GSTRUC, NPIX
 
@@ -43,18 +40,14 @@ def gstruc_add(tstr):
     # Add new elements
     if len(tstr)+GSTRUC['count'] > len(GSTRUC['x']):
         print('Adding more elements to GSTRUC')
-        for n in ['x','y','ngauss','npix']:
+        for n in ['x','y']:
             GSTRUC[n] = np.hstack((GSTRUC[n],np.zeros(100000,int)-1))
     # Stuff in the new data
     count = GSTRUC['count']
     GSTRUC['data'].append(tstr)
     GSTRUC['x'][count] = tstr['x']
     GSTRUC['y'][count] = tstr['y']
-    if tstr['par'] is not None:
-        GSTRUC['ngauss'][count] = len(tstr['par'])//3
-    else:
-        GSTRUC['ngauss'][count] = 0
-    GSTRUC['npix'][count] = tstr['npix']
+    GSTRUC['ngauss'] += len(tstr['par'])//3
     GSTRUC['count'] += 1
         
     if type(GSTRUC['data'][-1]) is list:
@@ -72,8 +65,6 @@ def gstruc_replace(tstr):
         return
     ind = ind[0]
     GSTRUC['data'][ind] = tstr
-    GSTRUC['ngauss'][ind] = len(tstr['par'])//3
-    GSTRUC['npix'][ind] = tstr['npix']
     
 def btrack_add(track):
     """ Add to the BTRACK tracking structure."""
@@ -82,24 +73,19 @@ def btrack_add(track):
     # count:  the number of elements in DATA we're using currently, also
     #           the index of the next one to start with.
     # x/y:    the x/y position for the gaussians
-    # ngauss: the number of gaussians
 
     global BTRACK, GSTRUC, NPIX
     
     # Add new elements
     if BTRACK['count']+1 > len(BTRACK['x']):
         print('Adding more elements to BTRACK')
-        for n in ['x','y','ngauss','npix']:
+        for n in ['x','y']:
             BTRACK[n] = np.hstack((BTRACK[n],np.zeros(100000,int)-1))
     # Stuff in the new data
     count = BTRACK['count']
     BTRACK['data'] += [track]
     BTRACK['x'][count] = track['x']
     BTRACK['y'][count] = track['y']
-    if track['par'] is not None:
-        BTRACK['ngauss'][count] = len(track['par'])//3
-    else:
-        BTRACK['ngauss'][count] = 0
     BTRACK['count'] += 1
 
     
@@ -1231,14 +1217,14 @@ def savedata(outfile):
 
     # Construct gstruc output structure
     count = GSTRUC['count']
-    ngauss = np.sum(GSTRUC['ngauss'][0:count])
+    ngauss = GSTRUC['ngauss']
     dtype = np.dtype([('x',int),('y',int),('par',float,3),('sigpar',float,3),('rms',float),
                       ('noise',float),('lon',float),('lat',float)])
     gstruc = np.zeros(ngauss,dtype=dtype)
     cnt = 0
     for i in range(count):
         tstr1 = GSTRUC['data'][i]
-        ngauss1 = GSTRUC['ngauss'][i]
+        ngauss1 = len(tstr1['par'])//3
         gstruc1 = np.zeros(ngauss1,dtype=dtype)
         gstruc1['x'] = tstr1['x']
         gstruc1['y'] = tstr1['y']
@@ -1468,7 +1454,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             x,y,guessx,guessy,guesspar,back,redo,skip,endflag = out
 
         # The end
-        if endflag or ((x>=xr[1]) and (y>=yr[1])):
+        if endflag:
             break
             
         # Starting the tracking structure, bad until proven good
@@ -1763,7 +1749,11 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
  
         # UPDATING THE TRACKING STRUCTURE
         btrack_add(track)
- 
+
+        # The end
+        if ((x>=xr[1]) and (y>=yr[1])):
+            break
+        
         count += 1 
  
         # Saving the last position 
@@ -1778,15 +1768,15 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             savetime = time.time()
             
     # FINAL SAVE
-    ngauss = np.sum(GSTRUC['ngauss'][0:GSTRUC['count']])
+    ngauss = GSTRUC['ngauss']
     print(str(ngauss)+' final Gaussians')
     gstruc = savedata(outfile)
-
+    
     # Clean up the tracking structures
     del BTRACK
     del GSTRUC
 
     print('Total time = %.2f sec.' % (time.time()-tstart))
-
+    
     return gstruc
 
