@@ -8,9 +8,9 @@ import dill as pickle
 from dlnpyutils import utils as dln
 from astropy.table import Table
 from astropy.io import fits
+import dill as pickle
 from . import utils,fitter
 from .cube import Cube
-
 
 def initialize_tracking():
     """ Initialize the tracking structures."""
@@ -1247,7 +1247,7 @@ def savedata(outfile):
     
 def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
            plotxr=None,trackplot=False,noplot=True,silent=False,
-           noback=False,backret=True,wander=False,gstruc=None,btrack=None,
+           noback=False,backret=True,wander=False,startfile=None,
            savestep=5000,clobber=False):
     """
     This program runs the gaussian fitting program 
@@ -1312,10 +1312,8 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
          came from.  Default is True.
     wander : boolean, optional
        Allow backwards motion. Haud's algorithm.  Default is False.
-    gstruc : list, optional
-       List of gaussians to start with.
-    btrack : list, optional
-       Tracking structure to start with.
+    startfile : str, optional
+       Start at the last position of this tracking file (pickle).
     savestep : int, optional
        Number of steps to save on.  Default is 5000.
     clobber : boolean, optional
@@ -1383,7 +1381,35 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     if outfile is None:
         logtime = datetime.now().strftime("%Y%m%d%H%M%S") 
         outfile = 'gaussdecomp_'+logtime+'.fits' 
- 
+
+    # STARTING WITH BTRACK, RESTORING THE LAST STATE
+    if startfile is not None:
+        print('Starting with last state of input file '+str(startfile))
+        with open(startfile,'rb') as f: 
+            BTRACK = pickle.load(f)
+            GSTRUC = pickle.load(f)
+        count = BTRACK['count']
+        x = BTRACK['x'][count-1]
+        y = BTRACK['y'][count-1]
+        track = BTRACK['data'][count-1]
+        back = track['back']
+        redo = track['redo']
+        redo_fail = track['redo_fail']
+        skip = False
+        count += 1
+        xstart = x
+        ystart = y
+        lastx = x 
+        lasty = y
+    # STARTING TRACKING FRESH
+    else:
+        initialize_tracking()
+        redo_fail = False 
+        redo = False
+        back = False
+        lastx = None
+    lasty = None
+        
     # Printing out the inputs
     if silent==False:
         print(' RUNNING GAUSSIAN ANALYSIS WITH THE FOLLOWING PARAMETERS')
@@ -1405,11 +1431,6 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         print('')
  
     # Initializing some parameters 
-    redo_fail = False 
-    redo = False
-    back = False
-    lastx = None
-    lasty = None
     p0 = False
     p1 = False
     p2 = False
@@ -1425,21 +1446,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
     gstruc_dict = {'x':None,'y':None,'rms':None,'noise':None,'par':None,
                    'sigpar':None,'lon':None,'lat':None,'npix':None}
 
-        
-    # STARTING WITH BTRACK, RESTORING THE LAST STATE 
-    if (gstruc is not None and btrack is not None):
-        BTRACK = btrack
-        GSTRUC = gstruc
-        count = BTRACK['count']
-        x = BTRACK['x'][count-1]
-        y = BTRACK['y'][count-1]
-        count += 1 
-        lastx = x 
-        lastlast = y
-    # STARTING TRACKING FRESH
-    else:
-        initialize_tracking()
-
+    
         
     # STARTING THE LARGE LOOP 
     while (endflag == False): 
@@ -1456,7 +1463,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
             out = nextmove(x,y,xr,yr,count,xsgn,ysgn,backret=backret,noback=noback,
                            wander=wander,redo=redo,back=back,redo_fail=redo_fail,silent=silent)
             x,y,guessx,guessy,guesspar,back,redo,skip,endflag = out
-
+            
         # The end
         if endflag:
             break
