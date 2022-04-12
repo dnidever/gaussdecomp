@@ -1214,7 +1214,7 @@ def savedata(outfile):
 
     # Back up any existing file
     picklefile = outfile.replace('.fits','.pkl')
-    backpicklefile = pickfile+'.backup'    
+    backpicklefile = picklefile+'.backup'    
     if os.path.exists(picklefile):
         if os.path.exists(backpicklefile):
             shutil.move(picklefile,backpicklefile)
