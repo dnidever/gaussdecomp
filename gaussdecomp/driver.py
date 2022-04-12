@@ -1212,12 +1212,22 @@ def savedata(outfile):
     
     print('SAVING DATA to '+outfile)
 
-    # Write tracking structures to pickle file
+    # Back up any existing file
     picklefile = outfile.replace('.fits','.pkl')
+    backpicklefile = pickfile+'.backup'    
+    if os.path.exists(picklefile):
+        if os.path.exists(backpicklefile):
+            shutil.move(picklefile,backpicklefile)
+    
+    # Write tracking structures to pickle file
     with open(picklefile, 'wb') as f:
         pickle.dump(BTRACK, f)
         pickle.dump(GSTRUC, f)                    
 
+    # Remove backup file if it exists
+    if os.path.exists(backpicklefile):
+        os.remove(backpicklefile)
+        
     # Construct gstruc output structure
     count = GSTRUC['count']
     ngauss = GSTRUC['ngauss']
