@@ -1258,7 +1258,7 @@ def savedata(outfile):
 def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None,
            plotxr=None,trackplot=False,noplot=True,silent=False,
            noback=False,backret=True,wander=False,startfile=None,
-           savestep=5000,clobber=False):
+           savestep=10000,clobber=False):
     """
     This program runs the gaussian fitting program 
     on a large part of the HI all sky survey 
@@ -1788,7 +1788,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         lasty = y 
   
         # SAVING THE STRUCTURES, periodically
-        if (count % savestep == 0) and (time.time()-savetime) > 300:
+        if (count % savestep == 0) and (time.time()-savetime) > 1800:
             gstruc = savedata(outfile)
             savetime = time.time()
             
