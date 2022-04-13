@@ -12,14 +12,22 @@ import dill as pickle
 from . import utils,fitter
 from .cube import Cube
 
-def initialize_tracking():
+def initialize_tracking(wander,yr):
     """ Initialize the tracking structures."""
 
     global BTRACK, GSTRUC
 
+    # How many steps are we tracking
+    ntrack = 0
+    if wander==False:
+        ntrack = yr[1]*3
+        n = ntrack
+    else:
+        ntrack = 0
+        n = 100000
+    
     # Tracking lists
-    n = 100000
-    BTRACK = {'data':[],'count':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1}
+    BTRACK = {'data':[],'count':0,'wander':wander,'ntrack':ntrack,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1}
     GSTRUC = {'data':[],'count':0,'ngauss':0,'x':np.zeros(n,int)-1,'y':np.zeros(n,int)-1}
 
     
@@ -79,18 +87,41 @@ def btrack_add(track):
 
     global BTRACK, GSTRUC, NPIX
     
-    # Add new elements
-    if BTRACK['count']+1 > len(BTRACK['x']):
-        print('Adding more elements to BTRACK')
-        for n in ['x','y']:
-            BTRACK[n] = np.hstack((BTRACK[n],np.zeros(100000,int)-1))
-    # Stuff in the new data
-    count = BTRACK['count']
-    BTRACK['data'] += [track]
-    BTRACK['x'][count] = track['x']
-    BTRACK['y'][count] = track['y']
-    BTRACK['count'] += 1
+    # Wander
+    if BTRACK['wander']:
+        # Add new elements        
+        if BTRACK['count']+1 > len(BTRACK['x']):
+            print('Adding more elements to BTRACK')
+            for n in ['x','y']:
+                BTRACK[n] = np.hstack((BTRACK[n],np.zeros(100000,int)-1))
+        # Stuff in the new data
+        count = BTRACK['count']
+        BTRACK['data'] += [track]
+        BTRACK['x'][count] = track['x']
+        BTRACK['y'][count] = track['y']
+    # No wander
+    else:
+        # Stuff in the new data
+        count = BTRACK['count']
+        # shift all data/x/y value back by one
+        if BTRACK['count'] >= BTRACK['ntrack']:
+            del BTRACK['data'][0]
+            BTRACK['x'][0:-1] = BTRACK['x'][1:]
+            BTRACK['x'][-1] = -1
+            BTRACK['y'][0:-1] = BTRACK['y'][1:]
+            BTRACK['y'][-1] = -1
+            # Now add the new values at the end
+            BTRACK['data'] += [track]
+            BTRACK['x'][-1] = track['x']
+            BTRACK['y'][-1] = track['y']
+        else:
+            # Now add the new values
+            BTRACK['data'] += [track]            
+            BTRACK['x'][count] = track['x']
+            BTRACK['y'][count] = track['y']
 
+    BTRACK['count'] += 1
+    
     
 def gincrement(x,y,xr,yr,xsgn=1,ysgn=1,nstep=1,p2=False):
     """
@@ -1413,7 +1444,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
         lasty = y
     # STARTING TRACKING FRESH
     else:
-        initialize_tracking()
+        initialize_tracking(wander,yr)
         redo_fail = False 
         redo = False
         back = False
