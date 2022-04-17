@@ -662,7 +662,7 @@ def gfit(x,y,par,bounds=None,noise=None):
                 success = True
             except:
                 print('Problems in curve_fit')
-                fpar = par 
+                fpar = par
                 perror = par*0.+999999. 
                 rms = 999999. 
                 chisq = 999999. 

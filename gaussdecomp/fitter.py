@@ -248,7 +248,8 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         else:
             pararr2 = np.zeros((n,3),float)
         sigpararr2 = np.copy(pararr2) 
- 
+        successarr2 = np.zeros(n,bool)
+        
         if silent is False:
             print(str(n)+' gaussian candidates')
  
@@ -268,7 +269,8 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             rmsarr2[i] = rms 
             pararr2[i,:] = fpar 
             sigpararr2[i,:] = sigpar 
- 
+            successarr2[i] = success5
+            
             # Giagnostic plotting and printing
             if debug:
                 utils.gplot(v,y,fpar)
@@ -276,7 +278,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                 sleep(1.5)
  
         # Adding the gaussian with the lowest rms
-        gdi, = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999))
+        gdi, = np.where((rmsarr2 == np.min(rmsarr2)) & (rmsarr2 != 999999) & (successarr2==True))
         if len(gdi)>0:
             par0 = pararr2[gdi,:].flatten()
             npar0 = len(par0) 
@@ -329,7 +331,6 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         utils.gplot(v,spec,par0)
  
     # Printing the parameters 
-    ngauss = len(par0)//3
     if silent==False:
         utils.printgpar(par0,sigpar=sigpar00,rms=rms,noise=noise)
  
@@ -382,7 +383,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         drms = rms-rms0
         bic1 = utils.bayesinfocrit({'par':fpar,'rms':rms,'noise':noise,'npix':npix})
         # Remove the gaussian 
-        if (bic1 < bic0):   # (drms/rms0 < 0.02)
+        if (success==True) and (bic1 < bic0):   # (drms/rms0 < 0.02)
             if silent==False:
                 print('removing gaussian')
             par0 = fpar
@@ -404,10 +405,10 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
     # Run it one last time for the final values
     fpar,sigpar,rms,chisq,resid,noise5,success,rt5 = utils.gfit(v,y,par0,noise=noise)
     par0 = fpar 
-    ngauss = len(par0)//3 
- 
+    if success==False:
+        return noresults
+    
     # Final Results 
-    ngauss = len(par0)//3
     if noplot==False:
         utils.gplot(v,spec,par0)
     if silent==False:
