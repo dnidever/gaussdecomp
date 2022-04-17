@@ -319,7 +319,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         print(' Addition of Gaussians ',time.time()-addt0,' sec')
 
     # No gaussians found 
-    if pararr is None:
+    if par0 is None or len(par0)==0:
         return noresults
         
     # Saving the results of the fit
@@ -335,6 +335,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         utils.printgpar(par0,sigpar=sigpar00,rms=rms,noise=noise)
  
     # REMOVING GAUSSIANS 
+
     
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
