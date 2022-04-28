@@ -149,8 +149,8 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
 
          
         # Setting up some arrays 
-        rmsarr = np.zeros(200,float)+999999. 
-        pararr = np.zeros((200,3),float)+999999. 
+        rmsarr = []
+        pararr = []
         gcount = 0 
          
         # Looping through the different smoothed spectra 
@@ -200,13 +200,20 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                         fpar2 = np.zeros(3,float)+999999.
              
                     # Adding to the rms and par arrays 
-                    rmsarr[gcount] = rms 
-                    pararr[gcount,:] = fpar2 
+                    rmsarr.append(rms)
+                    pararr.append(fpar2)
              
                     gcount += 1
  
-        # Only taking the good rms 
-        gdrms , = np.where(rmsarr < 999999.) 
+        # Only taking the good rms
+        ngdrms = 0
+        if len(rmsarr)>0:
+            rmsarr = np.array(rmsarr)
+            pararr = np.array(pararr)
+            # Only taking the good rms 
+            gdrms, = np.where(rmsarr < 999999.) 
+        else:
+            gdrms = np.array([],int)
         ngdrms = len(gdrms)
         
         # No good ones 
