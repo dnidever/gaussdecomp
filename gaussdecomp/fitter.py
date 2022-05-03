@@ -7,7 +7,7 @@ from . import utils
 from dlnpyutils import utils as dln
 
 def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
-                color=False,vmax=None,vmin=None,debug=False):
+                color=False,vmax=None,vmin=None,debug=False,noremovesmall=False):
                 
     """
     This program tries to do gaussian analysis 
@@ -29,6 +29,9 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
        Don't print anything 
     debug : boolean, optional
        Diagnostic printing and plotting.
+    noremovesmall : boolean, optional
+       Do not try to remove small Gaussians
+         at the end.
      
     Returns
     -------
@@ -361,47 +364,48 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
 
     
     # See if removing the smallest (in area) gaussian changes much
-    if silent==False:
-        print('Attempting to remove small Gaussians')
+    if noremovesmall:
+        if silent==False:
+            print('Attempting to remove small Gaussians')
     
-    count = 0 
-    ngauss = len(par0)//3
-    if silent==False:
-        print('Ngauss = %d' % ngauss)
+        count = 0 
+        ngauss = len(par0)//3
+        if silent==False:
+            print('Ngauss = %d' % ngauss)
     
-    orig_par0 = par0 
-    nrefit = int(np.ceil(ngauss/2))
-    if ngauss==1:
-        nrefit = 0
+        orig_par0 = par0 
+        nrefit = int(np.ceil(ngauss/2))
+        if ngauss==1:
+            nrefit = 0
 
-    sigma = np.ones(npts,float)*noise
-    weights = 1/sigma**2
-    rms0 = utils.computerms(v,spec,par0)
-    bic0 = utils.bayesinfocrit({'par':par0,'rms':rms0,'noise':noise,'npix':npix})
+        sigma = np.ones(npts,float)*noise
+        weights = 1/sigma**2
+        rms0 = utils.computerms(v,spec,par0)
+        bic0 = utils.bayesinfocrit({'par':par0,'rms':rms0,'noise':noise,'npix':npix})
     
-    # Loop through the smallest 1/2 
-    for i in range(nrefit): 
-        ig = ngauss-i-1 
-        tpar = np.copy(par0)
-        # Remove the gaussian in question
-        todel = np.arange(3)+ig*3
-        tpar = np.delete(tpar,todel)
-        # Finding the best fit
-        fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
-        drms = rms-rms0
-        bic1 = utils.bayesinfocrit({'par':fpar,'rms':rms,'noise':noise,'npix':npix})
-        # Remove the gaussian 
-        if (success==True) and (bic1 < bic0):   # (drms/rms0 < 0.02)
-            if silent==False:
-                print('removing gaussian')
-            par0 = fpar
-            rms0 = utils.computerms(v,spec,par0)            
-            # saving the results of the fit 
-            #  without this gaussian 
-            sigpar00 = sigpar 
-            rms00 = rms 
-            chisq00 = chisq 
-            success00 = success
+        # Loop through the smallest 1/2 
+        for i in range(nrefit): 
+            ig = ngauss-i-1 
+            tpar = np.copy(par0)
+            # Remove the gaussian in question
+            todel = np.arange(3)+ig*3
+            tpar = np.delete(tpar,todel)
+            # Finding the best fit
+            fpar,sigpar,rms,chisq,residuals,noise5,success,rt5 = utils.gfit(v,y,tpar,noise=noise)
+            drms = rms-rms0
+            bic1 = utils.bayesinfocrit({'par':fpar,'rms':rms,'noise':noise,'npix':npix})
+            # Remove the gaussian 
+            if (success==True) and (bic1 < bic0):   # (drms/rms0 < 0.02)
+                if silent==False:
+                    print('removing gaussian')
+                par0 = fpar
+                rms0 = utils.computerms(v,spec,par0)            
+                # saving the results of the fit 
+                #  without this gaussian 
+                sigpar00 = sigpar 
+                rms00 = rms 
+                chisq00 = chisq 
+                success00 = success
             
     # Removing bad gaussians 
     par0 = utils.gremove(par0,v,y)
