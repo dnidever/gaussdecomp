@@ -6,8 +6,9 @@ import numpy as np
 from . import utils
 from dlnpyutils import utils as dln
 
-def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
-                color=False,vmax=None,vmin=None,debug=False,noremovesmall=False):
+def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
+                vmax=None,vmin=None,detsnrthresh=0,dethtthresh=2.0,
+                debug=False,noremovesmall=False):
                 
     """
     This program tries to do gaussian analysis 
@@ -27,6 +28,11 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
        Don't plot anything 
     silent : boolean, optional
        Don't print anything 
+    detsnrthresh : float, optional
+       Detection threshold on S/N.  Default is 0.
+    dethtthresh : float, optional
+       Detection threshold on height in units of noise.
+         Default is 2.
     debug : boolean, optional
        Diagnostic printing and plotting.
     noremovesmall : boolean, optional
@@ -154,6 +160,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
         # Setting up some arrays 
         rmsarr = []
         pararr = []
+        snrarr = []
         gcount = 0 
          
         # Looping through the different smoothed spectra 
@@ -175,18 +182,18 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
             maxarr = utils.gpeak1(smresid,np.maximum(5*noise,0.5*maxy))
             if len(maxarr)==0:
                 maxarr = utils.gpeak1(smresid,np.maximum(5*noise,0.1*maxy))
-            if len(maxarr)==0:
+            if len(maxarr)==0 and dethtthresh<=5:
                 maxarr = utils.gpeak1(smresid,5*noise)
-            if len(maxarr)==0:
+            if len(maxarr)==0 and dethtthresh<=3:
                 maxarr = utils.gpeak1(smresid,3*noise)
-            if len(maxarr)==0:
+            if len(maxarr)==0 and dethtthresh<=2:
                 maxarr = utils.gpeak1(smresid,2*noise)
-            if len(maxarr)==0:
+            if len(maxarr)==0 and dethtthresh<=1:
                 maxarr = utils.gpeak1(smresid,noise)
-            if len(maxarr)==0:
+            if len(maxarr)==0 and dethtthresh<=0.5:
                 maxarr = utils.gpeak1(smresid,0.5*noise)                
             ngd = len(maxarr) 
-         
+            
             # If there are any peaks check them out 
             if ngd > 0:
                 # Looping through the peaks and fitting them 
@@ -202,38 +209,45 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
                         fpar2s,sigpar2,rms2,chisq2,residuals,noise2,success2,rt2 = utils.gfit(v[gind],smresid[gind],par2s,noise=noise)
                         fpar2 = fpar2s[0:3]
                         rms = np.std(resid-utils.gfunc(v,*fpar2))
+                        area = utils.garea(fpar2)
+                        npix = int(np.ceil(1.5*2.35*fpar2[2]/dv))   # 1.5*FWHM/dv
+                        snr = area/(noise*np.sqrt(npix))
                     else: 
                         rms = 999999.
                         fpar2 = np.zeros(3,float)+999999.
-             
+                        snr = 0.0
+                        
                     # Adding to the rms and par arrays 
                     rmsarr.append(rms)
                     pararr.append(fpar2)
+                    snrarr.append(snr)
              
                     gcount += 1
- 
-        # Only taking the good rms
-        ngdrms = 0
+                    
+        # Only taking the good rms and above S/N threshold
+        ngdcand = 0
         if len(rmsarr)>0:
             rmsarr = np.array(rmsarr)
             pararr = np.array(pararr)
-            # Only taking the good rms 
-            gdrms, = np.where(rmsarr < 999999.) 
+            snrarr = np.array(snrarr)
+            # Only taking the good rms and above S/N threshold
+            gdcand, = np.where((rmsarr < 999999.) & (snrarr >= detsnrthresh))
         else:
-            gdrms = np.array([],int)
-        ngdrms = len(gdrms)
+            gdcand = np.array([],int)
+        ngdcand = len(gdcand)
         
         # No good ones 
-        if ngdrms == 0:
+        if ngdcand == 0:
             if (count == 0):
                 return noresults
             else: 
                 flag = 1
                 count += 1
                 continue 
-        rmsarr = rmsarr[gdrms]
-        pararr = pararr[gdrms,:]
+        rmsarr = rmsarr[gdcand]
+        pararr = pararr[gdcand,:]
         pararr = pararr.flatten()
+        snrarr = snrarr[gdcand]
         
         # Removing bad gaussians 
         pararr = utils.gremove(pararr,v,y)
@@ -368,7 +382,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,ngauss=None,silent=False,
 
     
     # See if removing the smallest (in area) gaussian changes much
-    if noremovesmall:
+    if noremovesmall==False:
         if silent==False:
             print('Attempting to remove small Gaussians')
     
