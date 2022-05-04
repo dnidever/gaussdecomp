@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 
 setup(name='gaussdecomp',
-      version='1.0.21',
+      version='1.0.22',
       description='Gaussian Decomposition',
       author='David Nidever',
       author_email='dnidever@montana.edu',
