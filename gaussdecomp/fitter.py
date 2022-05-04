@@ -191,7 +191,9 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
             if len(maxarr)==0 and dethtthresh<=1:
                 maxarr = utils.gpeak1(smresid,noise)
             if len(maxarr)==0 and dethtthresh<=0.5:
-                maxarr = utils.gpeak1(smresid,0.5*noise)                
+                maxarr = utils.gpeak1(smresid,0.5*noise)
+            if len(maxarr)==0 and dethtthresh<0.5:
+                maxarr = utils.gpeak1(smresid,dethtthresh*noise)                
             ngd = len(maxarr) 
             
             # If there are any peaks check them out 
