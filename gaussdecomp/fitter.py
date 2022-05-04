@@ -209,9 +209,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
                         fpar2s,sigpar2,rms2,chisq2,residuals,noise2,success2,rt2 = utils.gfit(v[gind],smresid[gind],par2s,noise=noise)
                         fpar2 = fpar2s[0:3]
                         rms = np.std(resid-utils.gfunc(v,*fpar2))
-                        area = utils.garea(fpar2)
-                        npix = int(np.ceil(1.5*2.35*fpar2[2]/dv))   # 1.5*FWHM/dv
-                        snr = area/(noise*np.sqrt(npix))
+                        snr = utils.gsnr(noise,dv,fpar2)
                     else: 
                         rms = 999999.
                         fpar2 = np.zeros(3,float)+999999.

@@ -890,3 +890,41 @@ def bayesinfocrit(res):
         npar = len(res['par'])        
         bic = npar*np.log(npar) - 2*lnlikelihood        
     return bic
+
+def gsnr(noise,dv,pars):
+    """ Estimate the S/N in a Gaussian."""
+
+    # There's no "correct" Gaussian width to use
+    # try a range and use the highest S/N
+    sig = pars[2]
+    fwhm = 2.35*sig
+    totarea = garea(pars)
+
+    # Calculate the S/N for a range of pixel widths
+    #  and then pick the highest one
+    #vmax = 3*np.ceil(np.max(np.array([fwhm,dv])))
+    #nv = int(np.ceil(vmax/dv)+1)
+    #nv = np.maximum(nv,2)
+    #vel = np.arange(nv)*dv  # starts at 0
+    # flux of only one side and the peak pixel
+    #flux = gfunc(vel,*pars)
+    #cumflux = np.cumsum(flux[1:])
+    #cumflux = np.append(flux[0],2*cumflux)
+    #npix = np.arange(nv)*2+1
+    #snrarr = cumflux/(noise*np.sqrt(npix))
+    #snr = np.max(snrarr)
+
+    # for a given set of parameters it's always the same pixel value
+    # that gives the highest S/N, no matter what the noise is
+    # actually it's always +/- 0.5957*fwhm no matter what
+    # always 0.7872 of the total area
+    # always vel_lim is always 0.5957*FWHM
+    npix_max = int(np.ceil(2*0.5957*fwhm/dv))
+    snr_max = totarea*0.7872/(noise*np.sqrt(npix_max))
+    snr = snr_max
+    
+    # Original simple approach
+    #npix1 = int(np.ceil(1.5*2.35*pars[2]/dv))   # 1.5*FWHM/dv
+    #snr1 = totarea/(noise*np.sqrt(npix1))
+
+    return snr
