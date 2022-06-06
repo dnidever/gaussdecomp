@@ -17,7 +17,7 @@ pro ghess,gstr,xname,yname,zname,im,color=color,nx=nx,ny=ny,dx=dx,dy=dy,$
           coldivisions=coldivisions,xtickformat=xtickformat,ytickformat=ytickformat,$
           xtickname=xtickname,xtickv=xtickv,ytickname=ytickname,$
           ytickv=ytickv,xticks=xticks,yticks=yticks,xminor=xminor,yminor=yminor,$
-          rescale=rescale,radeg=radeg
+          rescale=rescale,radeg=radeg,old=old
 
 ;+
 ;
@@ -375,7 +375,7 @@ if keyword_set(total) then begin
   ; LOTS OF POINTS
   ; Must not have too many in each pixel otherwise it requires
   ;  too many loops.
-  IF (n_elements(x) gt 1e5) and (max(numim) lt 1000.) then begin
+  IF (n_elements(x) gt 1e5) and (max(numim) lt 1000.) and not keyword_set(old) then begin
 
     ; THE METHOD USED HERE:
     ; When you doing an assignment operation while subscripting
@@ -410,7 +410,7 @@ if keyword_set(total) then begin
       narea2 = n_elements(area2)
       ; 1D array of indices for the arrays
       ;   for this "layer"
-      ind2 = findgen(narea2)
+      ind2 = l64indgen(narea2)
 
       ; Area for this "layer"
       temp = im*0.
@@ -418,7 +418,7 @@ if keyword_set(total) then begin
 
       ; Indices for this "layer"
       ;  The last subscript gets assigned
-      indall = im*0.-1
+      indall = long64(im)*0LL-1
       indall[xind2,yind2] = ind2
 
       ; Original indices
@@ -469,7 +469,7 @@ if keyword_set(total) then begin
   ENDIF ELSE BEGIN
 
     ; OLD METHOD
-    for i=0.,ng-1. do begin
+    for i=0LL,ng-1LL do begin
       xind = floor((x(i)-xmin)/dx)
       yind = floor((y(i)-ymin)/dy)
       im(xind,yind) = im(xind,yind)+area(i)
@@ -486,7 +486,7 @@ endif
 ; Column Density
 ;################
 if keyword_set(column) then begin
-  for i=0.,ng-1. do begin
+  for i=0LL,ng-1LL do begin
     xind = floor((x(i)-xmin)/dx)
     yind = floor((y(i)-ymin)/dy)
     im(xind,yind) = im(xind,yind)+area(i)
@@ -513,14 +513,14 @@ if keyword_set(spread) then begin
 
     if (xname eq 'cen') then begin
       ; looping through all the gaussians
-      for i=0.,ng-1 do begin
+      for i=0LL,ng-1LL do begin
         im(*,floor((y(i)-ymin)/dy)) = im(*,floor((y(i)-ymin)/dy)) + gfunc(xarr,[ht(i),cen(i),sig(i)])
       end
     endif
 
     if (yname eq 'cen') then begin
       ; looping through all the gaussians
-      for i=0.,ng-1 do begin
+      for i=0LL,ng-1LL do begin
         im(floor((x(i)-xmin)/dx),*) = im(floor((x(i)-xmin)/dx),*) + gfunc(yarr,[ht(i),cen(i),sig(i)])
       end
     endif
@@ -545,7 +545,7 @@ if keyword_set(avg) then begin
   outz = execute('z='+zname2)
 
   ; LOTS OF POINTS
-  IF (n_elements(x) gt 1e5) then begin
+  IF (n_elements(x) gt 1e5) and not keyword_set(old) then begin
 
     ; Three 2D arrays
     ;  im     Total
@@ -586,7 +586,7 @@ if keyword_set(avg) then begin
       narea2 = n_elements(area2)
       ; 1D array of indices for the arrays
       ;   for this "layer"
-      ind2 = findgen(narea2)
+      ind2 = l64indgen(narea2)
 
       ; Area for this "layer"
       temp = im*0.
@@ -596,7 +596,7 @@ if keyword_set(avg) then begin
 
       ; Indices for this "layer"
       ;  The last subscript gets assigned
-      indall = im*0.-1
+      indall = long64(im)*0LL-1
       indall[xind2,yind2] = ind2
 
       ; Original indices
@@ -652,7 +652,7 @@ if keyword_set(avg) then begin
     ima = im      ; average
     imn = im      ; number of gaussians
     im = im*0.0   ; start fresh
-    for i=0.,ng-1. do begin
+    for i=0LL,ng-1LL do begin
       xind = floor((x(i)-xmin)/dx)
       yind = floor((y(i)-ymin)/dy)
       im(xind,yind) = im(xind,yind)+area(i)
@@ -675,7 +675,7 @@ if keyword_set(avg) then begin
 
     ; Looping through the image elements
     ind = where(im gt 0.,nind)
-    for i=0.,nind-1 do begin
+    for i=0LL,nind-1LL do begin
       ind2 = array_indices(im,ind(i))
       ig = float( strsplit(imind(ind2(0),ind2(1)),' ',/extract) )
       nig = n_elements(ig)
@@ -801,7 +801,7 @@ if keyword_set(maximum) then begin
   endif
   outz = execute('z='+zname2)
 
-  for i=0.,ng-1. do begin
+  for i=0LL,ng-1LL do begin
     xind = floor((x(i)-xmin)/dx)
     yind = floor((y(i)-ymin)/dy)
     im(xind,yind) = im(xind,yind) > z(i)
@@ -817,7 +817,7 @@ if keyword_set(norm) and not keyword_set(avg) then begin
 
   ; Looping through the image elements
   ind = where(im gt 0.,nind)
-  for i=0.,nind-1 do begin
+  for i=0LL,nind-1LL do begin
     ind2 = array_indices(im,ind(i))
     ig = float( strsplit(imind(ind2(0),ind2(1)),' ',/extract) )
     nig = n_elements(ig)
