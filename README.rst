@@ -23,7 +23,7 @@ Documentation
 -------------
 
 .. image:: https://readthedocs.org/projects/gaussdecomp/badge/?version=latest
-        :target: http://theborg.readthedocs.io/
+        :target: http://gaussdecomp.readthedocs.io/
 
 See `the documentation <http://gaussdecomp.readthedocs.io>`_ for information on how
 to install and use `gaussdecomp`.
