@@ -196,9 +196,18 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
             #if len(maxarr)==0 and dethtthresh<0.5:
             #    maxarr = utils.gpeak1(smresid,dethtthresh*noise)                
             ngd = len(maxarr) 
-            
+
             # If there are any peaks check them out 
             if ngd > 0:
+
+                # Sort by height and only take the first five peaks
+                #  otherwise we might be overwhelmed by lots of tiny peaks
+                if ngd>5:
+                    si = np.flip(np.argsort(smresid[maxarr]))
+                    maxarr = maxarr[si]
+                    maxarr = maxarr[0:5]
+                    ngd = len(maxarr)
+                    
                 # Looping through the peaks and fitting them 
                 # to the proper residual spectrum 
                 # only one gaussian, plus a line 
