@@ -85,7 +85,7 @@ def garea(par,npow=1,column=False):
     return area 
     
 
-def parcheck(x,y,par):
+def parcheck(x,y,noise,par):
     """
     This program checks that the gaussian parameters 
     are okay. 
@@ -93,6 +93,7 @@ def parcheck(x,y,par):
     INPUT 
        x      Array of x values 
        y      Array of y values 
+       noise  Noise level in the spectrum.
        par    Array of gaussian parameters 
      
     OUTPUT 
@@ -129,7 +130,7 @@ def parcheck(x,y,par):
     # Checking the parameters 
     for i in range(ngauss):
         # Checking height 
-        if par[3*i] <= 0.01: 
+        if par[3*i] <= 0.01*noise:
             flag = 1 
         if par[3*i] > np.max(y)*2.0: 
             flag = 1 
@@ -151,7 +152,7 @@ def parcheck(x,y,par):
 
     return flag
         
-def gremove(par,x,y):
+def gremove(par,x,y,noise):
     """
     This program removes gaussians that have bad parameters. 
      
@@ -159,6 +160,7 @@ def gremove(par,x,y):
        par    Array of gaussian parameters 
        x      Array of x values 
        y      Array of y values 
+       noise  Noise level in the spectrum.
      
     OUTPUT 
        par    Array of gaussian parameters with bad gaussians removed 
@@ -187,7 +189,7 @@ def gremove(par,x,y):
      
         # Using PARCHECK.PRO
         flag = 0
-        flag = parcheck(x,y,ipar)
+        flag = parcheck(x,y,noise,ipar)
         
         # If everything's fine add them to the final parameters
         if flag==0:
@@ -512,7 +514,7 @@ def gest(v,spec,ind,nsig=3):
     return par,gind
                      
 
-def setlimits(x,y,par):
+def setlimits(x,y,noise,par):
     """
     This program sets limits for the gaussian parameters. 
      
@@ -520,6 +522,7 @@ def setlimits(x,y,par):
     ----------
        x        Array of x values 
        y        Array of y values 
+       noise    Noise level in spectrum.
        par      Gaussian parameters 
      
     Returns
@@ -549,8 +552,11 @@ def setlimits(x,y,par):
     xmin = np.min(x) 
     xmax = np.max(x) 
     ymin = np.min(y) 
-    ymax = np.max(y) 
-
+    ymax = np.max(y)
+    
+    # Calculate dX
+    dx = np.abs(np.median(np.diff(x[0:np.minimum(10,nx)])))
+    
     # Initialize the bounds
     bounds = (np.zeros(npar,float)-np.inf,
               np.zeros(npar,float)+np.inf)
@@ -558,13 +564,13 @@ def setlimits(x,y,par):
     # Setting limits 
     for i in range(ngauss): 
         # Height limits, must be greater than 0, le than height 
-        bounds[0][3*i] = 0.01
+        bounds[0][3*i] = 0.01*noise
         bounds[1][3*i] = ymax*2
         # Center limits, must be within velocity bound, must be close to center 
         bounds[0][3*i+1] = xmin
         bounds[1][3*i+1] = xmax
         # Width limits, must be greater than 0, less than half the xscale 
-        bounds[0][3*i+2] = 0.5
+        bounds[0][3*i+2] = 0.5*dx
         bounds[1][3*i+2] = (xmax-xmin)*0.5
      
     # Constant offset, must be great than 0 and less than max height 
@@ -624,11 +630,19 @@ def gfit(x,y,par,bounds=None,noise=None):
     # Getting the noise level
     if noise is None:
         noise = utils.computenoise(spec)
-     
+
+    # Calculate dX    
+    dx = np.abs(np.median(np.diff(x[0:np.minimum(10,npts)])))
+    # check that sigmas are above the lower limit
+    sigind = np.arange(2,len(par),3)
+    badsigma, = np.where(par[sigind] <= 0.5*dx)
+    if len(badsigma)>0:
+        par[sigind[badsigma]] = 0.51*dx
+        
     # Setting the limits
     if bounds is None:
-        bounds = setlimits(x,y,par)
-    badflag = parcheck(x,y,par)
+        bounds = setlimits(x,y,noise,par)
+    badflag = parcheck(x,y,noise,par)
                      
     # Initial parameters are okay 
     if badflag == 0:
@@ -680,6 +694,7 @@ def gfit(x,y,par,bounds=None,noise=None):
     rtime = time.time()-t0 
     
     return fpar,perror,rms,chisq,resid,noise,success,rtime
+
 
 def gsort(par,dec=False,cen=False):
     """

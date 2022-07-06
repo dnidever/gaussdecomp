@@ -1618,7 +1618,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 tp0,tres0 = gfind(x,y,xr=xr,yr=yr) 
                 if (tp0 == 0) and (guesspar is not None):
                     v0results_noguess = fitter.gaussfitter(spec,vmin=vmin,vmax=vmax,silent=True,noplot=True)
-                    b,dbic = gbetter(results,results2)
+                    b,dbic = gbetter(v0results,v0results_noguess)
                     # The fit without the guess is better 
                     if (dbic>0):
                         v0results = v0results_noguess.copy()
@@ -1649,10 +1649,10 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                         guesspar2 = np.array([],float)
                         inpar1 = np.copy(guesspar)
                         inpar2 = np.copy(guesspar)
-                        inpar1 = utils.gremove(inpar1,spec.vel[0:lo],spec.flux[0:lo])
+                        inpar1 = utils.gremove(inpar1,spec.vel[0:lo],spec.flux[0:lo],noise)
                         if inpar1 is not None:
                             guesspar2 = np.hstack((guesspar2,inpar1))
-                        inpar2 = utils.gremove(inpar2,spec.vel[hi:npts],spec.flux[hi:npts])
+                        inpar2 = utils.gremove(inpar2,spec.vel[hi:npts],spec.flux[hi:npts],noise)
                         if inpar2 is not None:
                             guesspar2 = np.hstack((guesspar2,inpar2))
                         if len(guesspar2)==0:
@@ -1666,7 +1666,7 @@ def driver(datacube,xstart=0,ystart=0,xr=None,yr=None,xsgn=1,ysgn=1,outfile=None
                 # FIT WITH NO GUESS (if first time and previous fit above with guess) 
                 if (tp0 == 0) and (guesspar is not None):
                     results_noguess = fitter.gaussfitter(inspec,silent=True,noplot=True)                    
-                    b,dbic34 = gbetter(results3,results4)
+                    b,dbic34 = gbetter(results,results_noguess)
                     # The fit without the guess is better 
                     if (b == 1):
                         results = results_noguess.copy()

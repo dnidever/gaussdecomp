@@ -103,14 +103,14 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
         if silent==False:
             print('Using First Guess Parameters')
         inpar = np.copy(initpar)     
-        inpar = utils.gremove(inpar,v,y) # removing bad ones 
-        inpar = utils.gremdup(inpar,v)   # removing the duplicates 
+        inpar = utils.gremove(inpar,v,y,noise) # removing bad ones 
+        inpar = utils.gremdup(inpar,v)         # removing the duplicates 
      
         # Letting everything float
         if inpar is not None:
             finpar,sigpar,rms,chisq,residuals,noise,success,rt1 = utils.gfit(v,y,inpar,noise=noise)
-            finpar = utils.gremove(finpar,v,y)  # removing bad ones 
-            finpar = utils.gremdup(finpar,v)    # removing the duplicates 
+            finpar = utils.gremove(finpar,v,y,noise)  # removing bad ones 
+            finpar = utils.gremdup(finpar,v)          # removing the duplicates 
 
         
     # ADDING GAUSSIANS
@@ -260,7 +260,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
         snrarr = snrarr[gdcand]
         
         # Removing bad gaussians 
-        pararr = utils.gremove(pararr,v,y)
+        pararr = utils.gremove(pararr,v,y,noise)
  
         # Removing the duplicates
         if pararr is not None:
@@ -376,7 +376,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
 
     
     # Removing bad gaussians 
-    par0 = utils.gremove(par0,v,y)
+    par0 = utils.gremove(par0,v,y,noise)
     
     # Removing the duplicates 
     par0 = utils.gremdup(par0,v)
@@ -436,7 +436,7 @@ def gaussfitter(spectrum,initpar=None,noplot=True,silent=False,
                 success00 = success
             
     # Removing bad gaussians 
-    par0 = utils.gremove(par0,v,y)
+    par0 = utils.gremove(par0,v,y,noise)
 
     # No parameters left
     if par0 is None or len(par0)==0:
