@@ -18,6 +18,15 @@ To install the latest version::
 
     pip install git+https://github.com/dnidever/gaussdecomp
 
+Attribution
+-----------
+
+.. image:: https://zenodo.org/badge/191846537.svg
+        :target: https://zenodo.org/badge/latestdoi/191846537
+
+If you make use of this code, please cite this work using the DOI::
+
+    Nidever, D. L. & Chwalik, E. 20212, dnidever/gaussdecomp, doi:10.5281/zenodo.4906680
     
 Documentation
 -------------
