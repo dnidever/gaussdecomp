@@ -9,7 +9,8 @@ Authors
 -------
 
 - **David Nidever** (Montana State University)
-
+- **Erica Chwalik** (Montana State University)
+  
   
 Installation
 ------------
