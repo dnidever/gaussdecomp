@@ -21,12 +21,13 @@ To install the latest version::
 Attribution
 -----------
 
-.. image:: https://zenodo.org/badge/191846537.svg
-        :target: https://zenodo.org/badge/latestdoi/191846537
+.. image:: https://zenodo.org/badge/227955549.svg
+        :target: https://zenodo.org/badge/latestdoi/227955549
 
 If you make use of this code, please cite this work using the DOI::
 
-    Nidever, D. L. & Chwalik, E. 20212, dnidever/gaussdecomp, doi:10.5281/zenodo.4906680
+    Nidever, D. L. & Chwalik, E. 20212, dnidever/gaussdecomp, doi:10.5281/zenodo.227955549
+
     
 Documentation
 -------------
