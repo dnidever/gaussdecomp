@@ -27,7 +27,7 @@ Attribution
 
 If you make use of this code, please cite this work using the DOI::
 
-    Nidever, D. L. & Chwalik, E. 20212, dnidever/gaussdecomp, doi:10.5281/zenodo.227955549
+    Nidever, D. L. & Chwalik, E. 2022, dnidever/gaussdecomp, doi:10.5281/zenodo.227955549
 
     
 Documentation
