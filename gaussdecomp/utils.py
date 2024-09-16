@@ -267,7 +267,7 @@ def gremdup(pararr,v):
             ind = np.arange(int(np.round(vran/dv+1))).astype(int)+int(np.round(vindcen+vlo/dv))
      
             # Calculating the similarity
-            sim = np.sum( (ig[ind]-jg[ind])**2 )*dv / ( garea(ipar,npow=2) + garea(jpar,npow=2) ) 
+            sim = np.sum( (ig[np.where(ind)]-jg[np.where(ind)])**2 )*dv / ( garea(ipar,npow=2) + garea(jpar,npow=2) )  
 
             n = len(pararr)/3 
             if j == n-1: 
